@@ -22,6 +22,8 @@ import org.apache.kafka.common.serialization.Deserializer;
  * The strategy to produce {@link org.apache.kafka.common.serialization.Deserializer} instances for {@link Consumer}s
  * that are created by {@link ConsumerFactory}s.
  *
+ * @param <K> the key type.
+ * @param <V> the value type.
  * @author Chris Gilbert
  */
 public interface KafkaDeserializerFactory<K, V> {

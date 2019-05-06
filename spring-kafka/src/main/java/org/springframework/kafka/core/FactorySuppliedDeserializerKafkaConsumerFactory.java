@@ -33,7 +33,7 @@ import java.util.Properties;
  * deserializers for each Consumer that is constructed.
  *
  * Users may provide their own implementation of {@link KafkaDeserializerFactory}, or alternatively an
- * {@link AnnotationDrivenKafkaDeserializerFactory} is implicitly created and populated by any
+ * {@link BeanLookupKafkaDeserializerFactory} is implicitly created and populated by any
  * Deserializers annotated as {@link org.springframework.kafka.annotation.KafkaKeyDeserializer} or
  * {@link org.springframework.kafka.annotation.KafkaValueDeserializer}
  *
