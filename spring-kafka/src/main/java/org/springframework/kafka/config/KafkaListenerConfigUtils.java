@@ -21,6 +21,7 @@ package org.springframework.kafka.config;
  *
  * @author Juergen Hoeller
  * @author Gary Russell
+ * @author Chris Gilbert
  */
 public abstract class KafkaListenerConfigUtils {
 
@@ -29,6 +30,12 @@ public abstract class KafkaListenerConfigUtils {
 	 */
 	public static final String KAFKA_LISTENER_ANNOTATION_PROCESSOR_BEAN_NAME =
 			"org.springframework.kafka.config.internalKafkaListenerAnnotationProcessor";
+
+	/**
+	 * The bean name of the internally managed Kafka serializer and deserializer annotation processor.
+	 */
+	public static final String KAFKA_SERIALIZER_DESERIALIZER_ANNOTATION_PROCESSOR_BEAN_NAME =
+			"org.springframework.kafka.config.internalKafkaSerializerDeserializerAnnotationProcessor";
 
 	/**
 	 * The bean name of the internally managed Kafka listener endpoint registry.
