@@ -19,51 +19,49 @@ import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.common.serialization.Deserializer;
 
 /**
- * The strategy to produce {@link org.apache.kafka.common.serialization.Serializer} and/or
- * {@link org.apache.kafka.common.serialization.Deserializer} instances for {@link Consumer}s that are created
- * by {@link ConsumerFactory}s.
- *
+ * The strategy to produce {@link org.apache.kafka.common.serialization.Deserializer} instances for {@link Consumer}s
+ * that are created by {@link ConsumerFactory}s.
  *
  * @author Chris Gilbert
  */
-public interface KafkaSerializerDeserializerFactory {
-
+public interface KafkaDeserializerFactory<K, V> {
 
 	/**
 	 * Provide a {@link Deserializer} for {@link org.apache.kafka.clients.consumer.ConsumerRecord} keys.
-	 * @param <K> The deserialized object type
+	 *
 	 * @return the Deserializer (null in the default implementation)
 	 */
-	default <K> Deserializer<K> getKeyDeserializer() {
+	default Deserializer<K> getKeyDeserializer() {
 		return null;
 	}
 
 	/**
 	 * Provide a {@link Deserializer} for {@link org.apache.kafka.clients.consumer.ConsumerRecord} keys, designed for a
 	 * specific {@link ConsumerFactory}.
-	 * @param <K> The deserialized object type
+	 *
 	 * @return the Deserializer (null in the default implementation)
 	 */
-	default <K> Deserializer<K> getKeyDeserializer(String consumerFactoryBeanName) {
+	default Deserializer<K> getKeyDeserializer(String consumerFactoryBeanName) {
 		return null;
 	}
 
 	/**
 	 * Provide a {@link Deserializer} for {@link org.apache.kafka.clients.consumer.ConsumerRecord} values.
-	 * @param <K> The deserialized object type
+	 *
 	 * @return the Deserializer (null in the default implementation)
 	 */
-	default <K> Deserializer<K> getValueDeserializer() {
+	default Deserializer<V> getValueDeserializer() {
 		return null;
 	}
 
 	/**
 	 * Provide a {@link Deserializer} for {@link org.apache.kafka.clients.consumer.ConsumerRecord} values, designed for
 	 * a specific {@link ConsumerFactory}.
-	 * @param <K> The deserialized object type
+	 *
 	 * @return the Deserializer (null in the default implementation)
 	 */
-	default <K> Deserializer<K> getValueDeserializer(String consumerFactoryBeanName) {
+	default Deserializer<V> getValueDeserializer(String consumerFactoryBeanName) {
 		return null;
 	}
+
 }

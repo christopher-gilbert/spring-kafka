@@ -16,39 +16,37 @@
 
 package org.springframework.kafka.core;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-
 import org.apache.kafka.clients.consumer.Consumer;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.Deserializer;
-
 import org.springframework.lang.Nullable;
-import org.springframework.util.StringUtils;
+
+import java.util.Map;
+import java.util.Properties;
 
 /**
  * The {@link ConsumerFactory} implementation to produce a new {@link Consumer} instance
  * for provided {@link Map} {@code configs} and optional {@link Deserializer} {@code keyDeserializer},
  * {@code valueDeserializer} implementations on each {@link #createConsumer()}
  * invocation.
+ * <p>
+ * Note that the same {@link Deserializer} instances are shared by all the created {@link KafkaConsumer}s. If you are
+ * using Deserializers that cannot be reused once closed then you should use a
+ * {@link FactorySuppliedDeserializerKafkaConsumerFactory} with a DeserializerFactory that provides new instances
+ * on retrieval.
  *
  * @param <K> the key type.
  * @param <V> the value type.
- *
  * @author Gary Russell
  * @author Murali Reddy
  * @author Artem Bilan
+ * @author Chris Gilbert (moved original implementation to {@link FactorySuppliedDeserializerKafkaConsumerFactory})
  */
 public class DefaultKafkaConsumerFactory<K, V> implements ConsumerFactory<K, V> {
 
-	private final Map<String, Object> configs;
+	private final FactorySuppliedDeserializerKafkaConsumerFactory<K, V> delegate;
 
-	private Deserializer<K> keyDeserializer;
-
-	private Deserializer<V> valueDeserializer;
+	private final SingleInstanceKafkaDeserializerFactory deserializerFactory;
 
 	/**
 	 * Construct a factory with the provided configuration.
@@ -65,110 +63,114 @@ public class DefaultKafkaConsumerFactory<K, V> implements ConsumerFactory<K, V> 
 	 * @param valueDeserializer the value {@link Deserializer}.
 	 */
 	public DefaultKafkaConsumerFactory(Map<String, Object> configs,
-			@Nullable Deserializer<K> keyDeserializer,
-			@Nullable Deserializer<V> valueDeserializer) {
-		this.configs = new HashMap<>(configs);
-		this.keyDeserializer = keyDeserializer;
-		this.valueDeserializer = valueDeserializer;
+									   @Nullable Deserializer<K> keyDeserializer,
+									   @Nullable Deserializer<V> valueDeserializer) {
+		this.deserializerFactory = new SingleInstanceKafkaDeserializerFactory(keyDeserializer, valueDeserializer);
+		this.delegate = new FactorySuppliedDeserializerKafkaConsumerFactory(configs, this.deserializerFactory);
 	}
 
 	public void setKeyDeserializer(@Nullable Deserializer<K> keyDeserializer) {
-		this.keyDeserializer = keyDeserializer;
+		this.deserializerFactory.setKeyDeserializer(keyDeserializer);
 	}
 
 	public void setValueDeserializer(@Nullable Deserializer<V> valueDeserializer) {
-		this.valueDeserializer = valueDeserializer;
+		this.deserializerFactory.setValueDeserializer(valueDeserializer);
 	}
 
 	@Override
 	public Map<String, Object> getConfigurationProperties() {
-		return Collections.unmodifiableMap(this.configs);
+		return this.delegate.getConfigurationProperties();
 	}
 
 	@Override
 	public Deserializer<K> getKeyDeserializer() {
-		return this.keyDeserializer;
+		return this.delegate.getKeyDeserializer();
 	}
 
 	@Override
 	public Deserializer<V> getValueDeserializer() {
-		return this.valueDeserializer;
+		return this.delegate.getValueDeserializer();
 	}
 
 	@Override
-	public Consumer<K, V> createConsumer(@Nullable String groupId, @Nullable String clientIdPrefix,
-			@Nullable String clientIdSuffix) {
+	public Consumer<K, V> createConsumer(@Nullable String groupId,
+										 @Nullable String clientIdPrefix,
+										 @Nullable String clientIdSuffix) {
 
-		return createKafkaConsumer(groupId, clientIdPrefix, clientIdSuffix, null);
+		return this.delegate.createConsumer(groupId, clientIdPrefix, clientIdSuffix);
 	}
 
 	@Override
-	public Consumer<K, V> createConsumer(@Nullable String groupId, @Nullable String clientIdPrefix,
-			@Nullable final String clientIdSuffixArg, @Nullable Properties properties) {
+	public Consumer<K, V> createConsumer(@Nullable String groupId,
+										 @Nullable String clientIdPrefix,
+										 @Nullable final String clientIdSuffixArg,
+										 @Nullable Properties properties) {
 
-		return createKafkaConsumer(groupId, clientIdPrefix, clientIdSuffixArg, properties);
-	}
-
-	@Deprecated
-	protected KafkaConsumer<K, V> createKafkaConsumer(@Nullable String groupId, @Nullable String clientIdPrefix,
-			@Nullable final String clientIdSuffixArg) {
-
-		return createKafkaConsumer(groupId, clientIdPrefix, clientIdSuffixArg, null);
-	}
-
-	protected KafkaConsumer<K, V> createKafkaConsumer(@Nullable String groupId, @Nullable String clientIdPrefix,
-			@Nullable final String clientIdSuffixArg, @Nullable Properties properties) {
-
-		boolean overrideClientIdPrefix = StringUtils.hasText(clientIdPrefix);
-		String clientIdSuffix = clientIdSuffixArg;
-		if (clientIdSuffix == null) {
-			clientIdSuffix = "";
-		}
-		boolean shouldModifyClientId = (this.configs.containsKey(ConsumerConfig.CLIENT_ID_CONFIG)
-				&& StringUtils.hasText(clientIdSuffix)) || overrideClientIdPrefix;
-		if (groupId == null
-				&& (properties == null || properties.stringPropertyNames().size() == 0)
-				&& !shouldModifyClientId) {
-			return createKafkaConsumer(this.configs);
-		}
-		else {
-			return createConsumerWithAdjustedProperties(groupId, clientIdPrefix, properties, overrideClientIdPrefix,
-					clientIdSuffix, shouldModifyClientId);
-		}
-	}
-
-	private KafkaConsumer<K, V> createConsumerWithAdjustedProperties(String groupId, String clientIdPrefix,
-			Properties properties, boolean overrideClientIdPrefix, String clientIdSuffix,
-			boolean shouldModifyClientId) {
-
-		Map<String, Object> modifiedConfigs = new HashMap<>(this.configs);
-		if (groupId != null) {
-			modifiedConfigs.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
-		}
-		if (shouldModifyClientId) {
-			modifiedConfigs.put(ConsumerConfig.CLIENT_ID_CONFIG,
-					(overrideClientIdPrefix ? clientIdPrefix
-							: modifiedConfigs.get(ConsumerConfig.CLIENT_ID_CONFIG)) + clientIdSuffix);
-		}
-		if (properties != null) {
-			properties.stringPropertyNames()
-				.stream()
-				.filter(name -> !name.equals(ConsumerConfig.CLIENT_ID_CONFIG)
-							&& !name.equals(ConsumerConfig.GROUP_ID_CONFIG))
-				.forEach(name -> modifiedConfigs.put(name, properties.getProperty(name)));
-		}
-		return createKafkaConsumer(modifiedConfigs);
-	}
-
-	protected KafkaConsumer<K, V> createKafkaConsumer(Map<String, Object> configs) {
-		return new KafkaConsumer<>(configs, this.keyDeserializer, this.valueDeserializer);
+		return this.delegate.createConsumer(groupId, clientIdPrefix, clientIdSuffixArg, properties);
 	}
 
 	@Override
 	public boolean isAutoCommit() {
-		Object auto = this.configs.get(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG);
-		return auto instanceof Boolean ? (Boolean) auto
-				: auto instanceof String ? Boolean.valueOf((String) auto) : true;
+		return this.delegate.isAutoCommit();
+	}
+
+	// TODO cg check which if any of these need to be here when tests are shifted around
+
+	@Deprecated
+	protected KafkaConsumer<K, V> createKafkaConsumer(@Nullable String groupId,
+													  @Nullable String clientIdPrefix,
+													  @Nullable final String clientIdSuffixArg) {
+
+		return createKafkaConsumer(groupId, clientIdPrefix, clientIdSuffixArg, null);
+	}
+
+	protected KafkaConsumer<K, V> createKafkaConsumer(@Nullable String groupId,
+													  @Nullable String clientIdPrefix,
+													  @Nullable final String clientIdSuffixArg,
+													  @Nullable Properties properties) {
+
+		return this.delegate.createKafkaConsumer(groupId, clientIdPrefix, clientIdSuffixArg, properties);
+	}
+
+	protected KafkaConsumer<K, V> createKafkaConsumer(Map<String, Object> configs) {
+		return this.delegate.createKafkaConsumer(configs);
+	}
+
+	/**
+	 * Simple implementation of {@link KafkaDeserializerFactory} that provides the same {@link Deserializer} instances
+	 * every time UNLESS the {@link Deserializer} instance variables are modified between calls. These fields are only
+	 * mutable in order to honour the public mutators in {@link DefaultKafkaConsumerFactory}, and are not expected
+	 * to be modified after initial creation.
+	 */
+	private class SingleInstanceKafkaDeserializerFactory implements KafkaDeserializerFactory<K, V> {
+
+		private Deserializer<K> keyDeserializer;
+
+		private Deserializer<V> valueDeserializer;
+
+		public SingleInstanceKafkaDeserializerFactory(Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer) {
+			this.keyDeserializer = keyDeserializer;
+			this.valueDeserializer = valueDeserializer;
+		}
+
+		@Override
+		public Deserializer<K> getKeyDeserializer() {
+			return keyDeserializer;
+		}
+
+		@Override
+		public Deserializer<V> getValueDeserializer() {
+			return valueDeserializer;
+		}
+
+		public void setKeyDeserializer(Deserializer<K> keyDeserializer) {
+			this.keyDeserializer = keyDeserializer;
+		}
+
+		public void setValueDeserializer(Deserializer<V> valueDeserializer) {
+			this.valueDeserializer = valueDeserializer;
+		}
+
 	}
 
 }

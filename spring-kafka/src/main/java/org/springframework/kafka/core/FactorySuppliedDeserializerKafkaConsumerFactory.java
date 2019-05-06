@@ -29,25 +29,23 @@ import java.util.Map;
 import java.util.Properties;
 
 /**
- * KafkaConsumerFactory that makes use of a {@link KafkaSerializerDeserializerFactory} to construct key and value
+ * KafkaConsumerFactory that makes use of a {@link KafkaDeserializerFactory} to construct key and value
  * deserializers for each Consumer that is constructed.
  *
- * Users may provide their own implementation of {@link KafkaSerializerDeserializerFactory}, or alternatively an
- * {@link AnnotationDrivenKafkaSerializerDeserializerFactory} is implicitly created and populated by any
+ * Users may provide their own implementation of {@link KafkaDeserializerFactory}, or alternatively an
+ * {@link AnnotationDrivenKafkaDeserializerFactory} is implicitly created and populated by any
  * Deserializers annotated as {@link org.springframework.kafka.annotation.KafkaKeyDeserializer} or
  * {@link org.springframework.kafka.annotation.KafkaValueDeserializer}
  *
  * @param <K> the key type in consumed {@link org.apache.kafka.clients.consumer.ConsumerRecord}s
  * @param <V> the value type in consumed {@link org.apache.kafka.clients.consumer.ConsumerRecord}s
- *
  * @author Chris Gilbert
- *
  */
 public class FactorySuppliedDeserializerKafkaConsumerFactory<K, V> implements ConsumerFactory<K, V>, BeanNameAware {
 
 	private final Map<String, Object> configs;
 
-	private KafkaSerializerDeserializerFactory deserializerFactory;
+	private KafkaDeserializerFactory<K, V> deserializerFactory;
 
 	private String name;
 
@@ -63,16 +61,16 @@ public class FactorySuppliedDeserializerKafkaConsumerFactory<K, V> implements Co
 	/**
 	 * Construct a factory with the provided configuration and factory for deserializers.
 	 *
-	 * @param configs the configuration.
+	 * @param configs             the configuration.
 	 * @param deserializerFactory the factory for providing key and value deserializer instances
 	 */
 	public FactorySuppliedDeserializerKafkaConsumerFactory(Map<String, Object> configs,
-									   KafkaSerializerDeserializerFactory deserializerFactory) {
+														   KafkaDeserializerFactory<K, V> deserializerFactory) {
 		this.configs = new HashMap<>(configs);
 		this.deserializerFactory = deserializerFactory;
 	}
 
-	public void setDeserializerFactory(KafkaSerializerDeserializerFactory deserializerFactory) {
+	public void setDeserializerFactory(KafkaDeserializerFactory<K, V> deserializerFactory) {
 		this.deserializerFactory = deserializerFactory;
 	}
 
