@@ -35,7 +35,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @param <V> the value type.
  * @author Chris Gilbert
  */
-public class BeanLookupKafkaDeserializerFactory<K, V> implements KafkaDeserializerFactory, BeanFactoryAware {
+public class BeanLookupKafkaDeserializerFactory<K, V> implements KafkaDeserializerFactory<K, V>, BeanFactoryAware {
 
 	private BeanFactory beanFactory;
 

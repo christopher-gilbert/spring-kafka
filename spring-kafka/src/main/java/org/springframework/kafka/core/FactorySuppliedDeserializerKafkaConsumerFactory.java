@@ -78,6 +78,10 @@ public class FactorySuppliedDeserializerKafkaConsumerFactory<K, V> implements Co
 		return this.deserializerFactory != null;
 	}
 
+	public KafkaDeserializerFactory<K, V> getDeserializerFactory() {
+		return this.deserializerFactory;
+	}
+
 	@Override
 	public Map<String, Object> getConfigurationProperties() {
 		return Collections.unmodifiableMap(this.configs);
