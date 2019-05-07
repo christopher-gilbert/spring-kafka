@@ -171,6 +171,8 @@ public class BeanLookupKafkaDeserializerFactory<K, V> implements KafkaDeserializ
 				|| (VALUE_TYPE.equals(type) && valueDeserializersForConsumerFactories.containsKey(consumerFactoryBeanName))) {
 			throw new IllegalStateException("Attempt to register more than one " + consumerFactoryBeanName + " " + type + " deserializer");
 		}
+		// TODO revisit this - as bean is a prototype there may be side effects we don't want at this stage
+		//can we check that the beanDefinition exists rather than getting a bewn
 		beanFactory.getBean(deserializerBeanName, Deserializer.class);
 		if (!ANY_CONSUMER_FACTORY.equals(consumerFactoryBeanName)) {
 			beanFactory.getBean(deserializerBeanName, Deserializer.class);

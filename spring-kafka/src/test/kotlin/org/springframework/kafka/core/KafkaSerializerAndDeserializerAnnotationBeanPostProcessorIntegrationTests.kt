@@ -37,6 +37,21 @@ class KafkaSerializerAndDeserializerAnnotationBeanPostProcessorIntegrationTests 
         assertThat(this.consumerFactoryWithDeserializerFactory.deserializerFactory).isSameAs(existingDeserializerFactory)
     }
 
+    @Test
+    fun `ensure annotated deserializer without a named consumer is added to factory as default`() {
+
+    }
+
+    @Test
+    fun `ensure annotated deserializer with a named consumer is added to factory for that consumer`() {
+
+    }
+
+    @Test
+    fun `ensure deserializers retrieved from the factory are prototypes`() {
+
+    }
+
     @Configuration
     @EnableKafka
     class Config {
