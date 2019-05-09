@@ -15,6 +15,7 @@
  */
 package org.springframework.kafka.annotation;
 
+import org.apache.kafka.common.serialization.Deserializer;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
@@ -22,10 +23,13 @@ import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import org.springframework.context.annotation.ScannedGenericBeanDefinition;
 import org.springframework.core.type.StandardMethodMetadata;
 import org.springframework.kafka.config.AbstractKafkaListenerContainerFactory;
 import org.springframework.kafka.core.BeanLookupKafkaDeserializerFactory;
 import org.springframework.kafka.core.FactorySuppliedDeserializerKafkaConsumerFactory;
+
+import java.util.Arrays;
 
 /**
  * PostProcessor that provides any {@link FactorySuppliedDeserializerKafkaConsumerFactory}s that have been added to
@@ -69,16 +73,41 @@ public class KafkaSerializerAndDeserializerAnnotationBeanPostProcessor implement
 	@Override
 	public void afterSingletonsInstantiated() {
 		if (this.beanFactory instanceof ConfigurableListableBeanFactory) {
-			String[] keyDeserializers = ((ConfigurableListableBeanFactory) this.beanFactory).getBeanNamesForAnnotation(KafkaKeyDeserializer.class);
+			String[] keyDeserializers = ((ConfigurableListableBeanFactory) this.beanFactory).getBeanNamesForType(Deserializer.class);
 			for (String deserializerBean : keyDeserializers) {
 				BeanDefinition definition = ((ConfigurableListableBeanFactory) this.beanFactory).getBeanDefinition(deserializerBean);
 				if (definition.getSource() instanceof StandardMethodMetadata) {
-					for (String consumerFactory : ((StandardMethodMetadata) definition.getSource()).getIntrospectedMethod().getAnnotation(KafkaKeyDeserializer.class).consumerFactories()) {
-						this.deserializerFactory.registerKeyDeserializer(consumerFactory, deserializerBean);
-					}
+					registerKeyDeserializer(deserializerBean, ((StandardMethodMetadata) definition.getSource()).getIntrospectedMethod().getAnnotation(KafkaKeyDeserializer.class));
+					registerValueDeserializer(deserializerBean, ((StandardMethodMetadata) definition.getSource()).getIntrospectedMethod().getAnnotation(KafkaValueDeserializer.class));
+				} else if (definition instanceof ScannedGenericBeanDefinition) {
+					registerKeyDeserializer(deserializerBean, ((ScannedGenericBeanDefinition) definition).getBeanClass().getAnnotation(KafkaKeyDeserializer.class));
+					registerValueDeserializer(deserializerBean, ((ScannedGenericBeanDefinition) definition).getBeanClass().getAnnotation(KafkaValueDeserializer.class));
 				}
 			}
+		}
 
+	}
+
+
+	private void registerKeyDeserializer(String deserializerName, KafkaKeyDeserializer deserializerAnnotation) {
+		if (deserializerAnnotation == null) {
+			return;
+		}
+		if (deserializerAnnotation.consumerFactories().length == 0) {
+			this.deserializerFactory.registerKeyDeserializer(deserializerName);
+		} else {
+			Arrays.stream(deserializerAnnotation.consumerFactories()).forEach(factory -> this.deserializerFactory.registerKeyDeserializer(factory, deserializerName));
+		}
+	}
+
+	private void registerValueDeserializer(String deserializerName, KafkaValueDeserializer deserializerAnnotation) {
+		if (deserializerAnnotation == null) {
+			return;
+		}
+		if (deserializerAnnotation.consumerFactories().length == 0) {
+			this.deserializerFactory.registerValueDeserializer(deserializerName);
+		} else {
+			Arrays.stream(deserializerAnnotation.consumerFactories()).forEach(factory -> this.deserializerFactory.registerValueDeserializer(factory, deserializerName));
 		}
 	}
 

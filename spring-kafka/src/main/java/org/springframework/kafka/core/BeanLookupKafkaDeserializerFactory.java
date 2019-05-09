@@ -88,7 +88,7 @@ public class BeanLookupKafkaDeserializerFactory<K, V> implements KafkaDeserializ
 	@Override
 	public Deserializer<V> getValueDeserializer(String consumerFactoryBeanName) {
 		String deserializerBeanName = valueDeserializersForConsumerFactories.getOrDefault(consumerFactoryBeanName,
-				keyDeserializersForConsumerFactories.get(ANY_CONSUMER_FACTORY));
+				valueDeserializersForConsumerFactories.get(ANY_CONSUMER_FACTORY));
 		return beanFactory.getBean(deserializerBeanName, Deserializer.class);
 	}
 

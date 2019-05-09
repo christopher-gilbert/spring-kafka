@@ -7,12 +7,15 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.Configuration
 import org.springframework.kafka.annotation.EnableKafka
 import org.springframework.kafka.annotation.KafkaKeyDeserializer
+import org.springframework.kafka.annotation.KafkaValueDeserializer
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory
 import org.springframework.stereotype.Component
 import org.springframework.test.annotation.DirtiesContext
+import org.springframework.test.context.ContextConfiguration
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig
 import javax.annotation.Resource
 
@@ -44,6 +47,8 @@ class KafkaSerializerAndDeserializerAnnotationBeanPostProcessorIntegrationTests 
 
     @Test
     fun `ensure annotated deserializer without a named consumer is added to factory as default`() {
+        assertThat(this.consumerFactory.deserializerFactory.getValueDeserializer("consumerFactory2")).isInstanceOf(ComponentDeserializer::class.java)
+        assertThat(this.consumerFactory.deserializerFactory.getValueDeserializer("consumerFactory3")).isInstanceOf(ComponentDeserializer::class.java)
 
     }
 
@@ -62,20 +67,25 @@ class KafkaSerializerAndDeserializerAnnotationBeanPostProcessorIntegrationTests 
     }
 
     @Configuration
+    @ComponentScan("org.springframework.kafka.core")
     @EnableKafka
     class Config {
 
         @Bean
-        fun consumerFactory(): FactorySuppliedDeserializerKafkaConsumerFactory<String, String>
-                = FactorySuppliedDeserializerKafkaConsumerFactory(HashMap<String, Any>())
+        fun consumerFactory(): FactorySuppliedDeserializerKafkaConsumerFactory<String, String> = FactorySuppliedDeserializerKafkaConsumerFactory(HashMap<String, Any>())
+
+        @Bean
+        fun consumerFactory2(): FactorySuppliedDeserializerKafkaConsumerFactory<String, String> = FactorySuppliedDeserializerKafkaConsumerFactory(HashMap<String, Any>())
+
+        @Bean
+        fun consumerFactory3(): FactorySuppliedDeserializerKafkaConsumerFactory<String, String> = FactorySuppliedDeserializerKafkaConsumerFactory(HashMap<String, Any>())
 
         @Bean
         fun deserializerFactory(): KafkaDeserializerFactory<String, String> = BeanLookupKafkaDeserializerFactory<String, String>()
 
         @Bean
         fun consumerFactoryWithProvidedDeserializerFactory(): FactorySuppliedDeserializerKafkaConsumerFactory<String, String> {
-            val factory: FactorySuppliedDeserializerKafkaConsumerFactory<String, String>
-                    = FactorySuppliedDeserializerKafkaConsumerFactory(HashMap<String, Any>())
+            val factory: FactorySuppliedDeserializerKafkaConsumerFactory<String, String> = FactorySuppliedDeserializerKafkaConsumerFactory(HashMap<String, Any>())
             factory.deserializerFactory = deserializerFactory()
             return factory
         }
@@ -99,8 +109,8 @@ class KafkaSerializerAndDeserializerAnnotationBeanPostProcessorIntegrationTests 
         fun configurationDeserializer(): Deserializer<String> = StringDeserializer()
 
     }
-//TODO how to component scan this
+
     @Component
-    @KafkaKeyDeserializer
-    class ComponentDeserializer: IntegerDeserializer()
+    @KafkaValueDeserializer
+    class ComponentDeserializer : IntegerDeserializer()
 }
