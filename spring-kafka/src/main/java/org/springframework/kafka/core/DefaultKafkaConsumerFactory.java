@@ -50,6 +50,7 @@ public class DefaultKafkaConsumerFactory<K, V> implements ConsumerFactory<K, V> 
 
 	/**
 	 * Construct a factory with the provided configuration.
+	 *
 	 * @param configs the configuration.
 	 */
 	public DefaultKafkaConsumerFactory(Map<String, Object> configs) {
@@ -58,8 +59,9 @@ public class DefaultKafkaConsumerFactory<K, V> implements ConsumerFactory<K, V> 
 
 	/**
 	 * Construct a factory with the provided configuration and deserializers.
-	 * @param configs the configuration.
-	 * @param keyDeserializer the key {@link Deserializer}.
+	 *
+	 * @param configs           the configuration.
+	 * @param keyDeserializer   the key {@link Deserializer}.
 	 * @param valueDeserializer the value {@link Deserializer}.
 	 */
 	public DefaultKafkaConsumerFactory(Map<String, Object> configs,
@@ -114,7 +116,6 @@ public class DefaultKafkaConsumerFactory<K, V> implements ConsumerFactory<K, V> 
 		return this.delegate.isAutoCommit();
 	}
 
-	// TODO cg check which if any of these need to be here when tests are shifted around
 
 	@Deprecated
 	protected KafkaConsumer<K, V> createKafkaConsumer(@Nullable String groupId,
@@ -129,11 +130,12 @@ public class DefaultKafkaConsumerFactory<K, V> implements ConsumerFactory<K, V> 
 													  @Nullable final String clientIdSuffixArg,
 													  @Nullable Properties properties) {
 
-		return this.delegate.createKafkaConsumer(groupId, clientIdPrefix, clientIdSuffixArg, properties);
+		return (KafkaConsumer<K, V>) this.delegate.createConsumer(groupId, clientIdPrefix, clientIdSuffixArg, properties);
 	}
 
+
 	protected KafkaConsumer<K, V> createKafkaConsumer(Map<String, Object> configs) {
-		return this.delegate.createKafkaConsumer(configs);
+		return (KafkaConsumer<K, V>) new DefaultKafkaConsumerFactory<K, V>(configs).createConsumer();
 	}
 
 	/**

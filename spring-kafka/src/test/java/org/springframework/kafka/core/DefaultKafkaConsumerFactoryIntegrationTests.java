@@ -54,25 +54,11 @@ import org.springframework.util.concurrent.ListenableFuture;
 )
 @SpringJUnitConfig
 @DirtiesContext
-public class DefaultKafkaConsumerFactoryTests {
+public class DefaultKafkaConsumerFactoryIntegrationTests {
 
 	@Autowired
 	private EmbeddedKafkaBroker embeddedKafka;
 
-	@Test
-	public void testClientId() {
-		Map<String, Object> configs = Collections.singletonMap(ConsumerConfig.CLIENT_ID_CONFIG, "foo");
-		DefaultKafkaConsumerFactory<String, String> factory = new DefaultKafkaConsumerFactory<String, String>(configs) {
-
-			@Override
-			protected KafkaConsumer<String, String> createKafkaConsumer(Map<String, Object> configs) {
-				assertThat(configs.get(ConsumerConfig.CLIENT_ID_CONFIG)).isEqualTo("foo-1");
-				return null;
-			}
-
-		};
-		factory.createConsumer("-1");
-	}
 
 	@SuppressWarnings("unchecked")
 	@Test

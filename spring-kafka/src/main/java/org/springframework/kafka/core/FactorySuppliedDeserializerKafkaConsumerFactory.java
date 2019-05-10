@@ -27,6 +27,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import static org.apache.kafka.clients.consumer.ConsumerConfig.CLIENT_ID_CONFIG;
+import static org.apache.kafka.clients.consumer.ConsumerConfig.GROUP_ID_CONFIG;
 
 /**
  * KafkaConsumerFactory that makes use of a {@link KafkaDeserializerFactory} to construct key and value
@@ -39,7 +44,7 @@ import java.util.Properties;
  *
  * @param <K> the key type in consumed {@link org.apache.kafka.clients.consumer.ConsumerRecord}s
  * @param <V> the value type in consumed {@link org.apache.kafka.clients.consumer.ConsumerRecord}s
- * @author Chris Gilbert
+ * @author Chris Gilbert (based on original {@link DefaultKafkaConsumerFactory}
  */
 public class FactorySuppliedDeserializerKafkaConsumerFactory<K, V> implements ConsumerFactory<K, V>, BeanNameAware {
 
@@ -101,68 +106,14 @@ public class FactorySuppliedDeserializerKafkaConsumerFactory<K, V> implements Co
 	public Consumer<K, V> createConsumer(@Nullable String groupId, @Nullable String clientIdPrefix,
 										 @Nullable String clientIdSuffix) {
 
-		return createKafkaConsumer(groupId, clientIdPrefix, clientIdSuffix, null);
+		return createConsumer(groupId, clientIdPrefix, clientIdSuffix, null);
 	}
 
 	@Override
 	public Consumer<K, V> createConsumer(@Nullable String groupId, @Nullable String clientIdPrefix,
-										 @Nullable final String clientIdSuffixArg, @Nullable Properties properties) {
+										 @Nullable final String clientIdSuffix, @Nullable Properties properties) {
 
-		return createKafkaConsumer(groupId, clientIdPrefix, clientIdSuffixArg, properties);
-	}
-
-	@Deprecated
-	protected KafkaConsumer<K, V> createKafkaConsumer(@Nullable String groupId, @Nullable String clientIdPrefix,
-													  @Nullable final String clientIdSuffixArg) {
-
-		return createKafkaConsumer(groupId, clientIdPrefix, clientIdSuffixArg, null);
-	}
-
-	protected KafkaConsumer<K, V> createKafkaConsumer(@Nullable String groupId, @Nullable String clientIdPrefix,
-													  @Nullable final String clientIdSuffixArg, @Nullable Properties properties) {
-
-		boolean overrideClientIdPrefix = StringUtils.hasText(clientIdPrefix);
-		String clientIdSuffix = clientIdSuffixArg;
-		if (clientIdSuffix == null) {
-			clientIdSuffix = "";
-		}
-		boolean shouldModifyClientId = (this.configs.containsKey(ConsumerConfig.CLIENT_ID_CONFIG)
-				&& StringUtils.hasText(clientIdSuffix)) || overrideClientIdPrefix;
-		if (groupId == null
-				&& (properties == null || properties.stringPropertyNames().size() == 0)
-				&& !shouldModifyClientId) {
-			return createKafkaConsumer(this.configs);
-		} else {
-			return createConsumerWithAdjustedProperties(groupId, clientIdPrefix, properties, overrideClientIdPrefix,
-					clientIdSuffix, shouldModifyClientId);
-		}
-	}
-
-	private KafkaConsumer<K, V> createConsumerWithAdjustedProperties(String groupId, String clientIdPrefix,
-																	 Properties properties, boolean overrideClientIdPrefix, String clientIdSuffix,
-																	 boolean shouldModifyClientId) {
-
-		Map<String, Object> modifiedConfigs = new HashMap<>(this.configs);
-		if (groupId != null) {
-			modifiedConfigs.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
-		}
-		if (shouldModifyClientId) {
-			modifiedConfigs.put(ConsumerConfig.CLIENT_ID_CONFIG,
-					(overrideClientIdPrefix ? clientIdPrefix
-							: modifiedConfigs.get(ConsumerConfig.CLIENT_ID_CONFIG)) + clientIdSuffix);
-		}
-		if (properties != null) {
-			properties.stringPropertyNames()
-					  .stream()
-					  .filter(name -> !name.equals(ConsumerConfig.CLIENT_ID_CONFIG)
-							  && !name.equals(ConsumerConfig.GROUP_ID_CONFIG))
-					  .forEach(name -> modifiedConfigs.put(name, properties.getProperty(name)));
-		}
-		return createKafkaConsumer(modifiedConfigs);
-	}
-
-	protected KafkaConsumer<K, V> createKafkaConsumer(Map<String, Object> configs) {
-		return new KafkaConsumer<>(configs, this.getKeyDeserializer(), this.getValueDeserializer());
+		return new KafkaConsumer<>(deriveConfigsForConsumerInstance(groupId, clientIdPrefix, clientIdSuffix, properties), this.getKeyDeserializer(), this.getValueDeserializer());
 	}
 
 	@Override
@@ -175,5 +126,65 @@ public class FactorySuppliedDeserializerKafkaConsumerFactory<K, V> implements Co
 	@Override
 	public void setBeanName(String name) {
 		this.name = name;
+	}
+
+
+	protected Map<String, Object> deriveConfigsForConsumerInstance(@Nullable String groupId, @Nullable String clientIdPrefix,
+																   @Nullable final String clientIdSuffix, @Nullable Properties properties) {
+		String clientId = deriveClientId(clientIdPrefix, clientIdSuffix);
+		if (propertiesAreOverridden(properties) || clientIdIsOverridden(clientId) || groupIdIsOverridden(groupId)) {
+			return deriveConfigs(clientId, groupId, properties);
+		}
+		return this.configs;
+	}
+
+	/**
+	 * client id suffix is appended to the client id prefix which overrides the
+	 * {@code client.id} property, if present in config.
+	 *
+	 * @param clientIdPrefix
+	 * @param clientIdSuffix
+	 * @return
+	 */
+	private String deriveClientId(@Nullable String clientIdPrefix,
+								  @Nullable final String clientIdSuffix) {
+		String clientId = this.configs.get(CLIENT_ID_CONFIG) != null ? this.configs.get(CLIENT_ID_CONFIG).toString() : null;
+		clientId = StringUtils.hasText(clientIdPrefix) ? clientIdPrefix : clientId;
+		if (clientId != null) {
+			clientId += StringUtils.hasText(clientIdSuffix) ? clientIdSuffix : "";
+		}
+		return clientId;
+	}
+
+	private boolean propertiesAreOverridden(@Nullable Properties properties) {
+		return (properties != null && !properties.isEmpty());
+	}
+
+	private boolean clientIdIsOverridden(@Nullable String clientId) {
+		return clientId != null && !clientId.equals(this.configs.get(CLIENT_ID_CONFIG));
+	}
+
+	private boolean groupIdIsOverridden(@Nullable String groupId) {
+		return groupId != null && !groupId.equals(this.configs.get(GROUP_ID_CONFIG));
+	}
+
+
+	private Map<String, Object> deriveConfigs(@Nullable String clientId, @Nullable String groupId, @Nullable Properties properties) {
+		Map<String, Object> modifiedConfigs = new HashMap<>(this.configs);
+
+		if (propertiesAreOverridden(properties)) {
+			modifiedConfigs.putAll(properties.stringPropertyNames()
+											 .stream()
+											 .collect(Collectors.toMap(Function.identity(), name -> properties.getProperty(name))));
+		}
+		if (groupIdIsOverridden(groupId)) {
+			modifiedConfigs.put(GROUP_ID_CONFIG, groupId);
+		}
+
+
+		if (clientIdIsOverridden(clientId)) {
+			modifiedConfigs.put(CLIENT_ID_CONFIG, clientId);
+		}
+		return modifiedConfigs;
 	}
 }
