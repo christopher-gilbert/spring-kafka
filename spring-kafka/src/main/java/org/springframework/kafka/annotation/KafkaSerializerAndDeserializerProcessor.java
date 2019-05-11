@@ -46,7 +46,7 @@ import java.util.stream.Stream;
  */
 public class KafkaSerializerAndDeserializerProcessor implements BeanPostProcessor, BeanFactoryAware, SmartInitializingSingleton {
 
-	private BeanLookupKafkaDeserializerFactory deserializerFactory = new BeanLookupKafkaDeserializerFactory();
+	private BeanLookupKafkaDeserializerFactory deserializerFactory;
 
 	private BeanFactory beanFactory;
 
@@ -82,7 +82,7 @@ public class KafkaSerializerAndDeserializerProcessor implements BeanPostProcesso
 	@Override
 	public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
 		this.beanFactory = beanFactory;
-		this.deserializerFactory.setBeanFactory(beanFactory);
+		this.deserializerFactory = new BeanLookupKafkaDeserializerFactory(beanFactory);
 	}
 
 	/**

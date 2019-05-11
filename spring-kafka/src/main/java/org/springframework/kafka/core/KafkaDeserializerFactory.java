@@ -41,6 +41,7 @@ public interface KafkaDeserializerFactory<K, V> {
 	 * Provide a {@link Deserializer} for {@link org.apache.kafka.clients.consumer.ConsumerRecord} keys, designed for a
 	 * specific {@link ConsumerFactory}.
 	 *
+	 * @param consumerFactoryBeanName the bean name of the consumer factory that is requesting the Deserializer
 	 * @return the Deserializer (null in the default implementation)
 	 */
 	default Deserializer<K> getKeyDeserializer(String consumerFactoryBeanName) {
@@ -60,6 +61,7 @@ public interface KafkaDeserializerFactory<K, V> {
 	 * Provide a {@link Deserializer} for {@link org.apache.kafka.clients.consumer.ConsumerRecord} values, designed for
 	 * a specific {@link ConsumerFactory}.
 	 *
+	 * @param consumerFactoryBeanName the bean name of the consumer factory that is requesting the Deserializer
 	 * @return the Deserializer (null in the default implementation)
 	 */
 	default Deserializer<V> getValueDeserializer(String consumerFactoryBeanName) {

@@ -40,6 +40,7 @@ public interface KafkaSerializerFactory<K, V> {
 	 * Provide a {@link Serializer} for {@link org.apache.kafka.clients.producer.ProducerRecord} keys, designed for a
 	 * specific {@link ProducerFactory}.
 	 *
+	 * @param producerFactoryBeanName the bean name of the producer factory that is requesting the Serializer
 	 * @return the Serializer (null in the default implementation)
 	 */
 	default Serializer<K> getKeySerializer(String producerFactoryBeanName) {
@@ -59,6 +60,7 @@ public interface KafkaSerializerFactory<K, V> {
 	 * Provide a {@link Serializer} for {@link org.apache.kafka.clients.producer.ProducerRecord} values, designed for
 	 * a specific {@link ProducerFactory}.
 	 *
+	 * @param producerFactoryBeanName the bean name of the producer factory that is requesting the Serializer
 	 * @return the Serializer (null in the default implementation)
 	 */
 	default Serializer<V> getValueSerializer(String producerFactoryBeanName) {

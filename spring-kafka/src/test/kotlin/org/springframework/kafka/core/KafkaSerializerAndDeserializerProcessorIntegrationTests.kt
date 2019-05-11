@@ -20,6 +20,7 @@ import org.apache.kafka.common.serialization.IntegerDeserializer
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.BeanFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.ComponentScan
@@ -48,6 +49,7 @@ class KafkaSerializerAndDeserializerProcessorIntegrationTests {
 
     @Autowired
     private lateinit var providedDeserializerFactory: KafkaDeserializerFactory<String, String>
+
 
     @Test
     fun `ensure deserializer factory is injected into consumer factory by default`() {
@@ -97,6 +99,9 @@ class KafkaSerializerAndDeserializerProcessorIntegrationTests {
     @EnableKafka
     class Config {
 
+        @Autowired
+        private lateinit var beanFactory: BeanFactory
+
         @Bean
         fun consumerFactory(): FactorySuppliedDeserializerKafkaConsumerFactory<String, String>
                 = FactorySuppliedDeserializerKafkaConsumerFactory(HashMap<String, Any>())
@@ -115,7 +120,7 @@ class KafkaSerializerAndDeserializerProcessorIntegrationTests {
 
         @Bean
         fun deserializerFactory(): KafkaDeserializerFactory<String, String>
-                = BeanLookupKafkaDeserializerFactory<String, String>()
+                = BeanLookupKafkaDeserializerFactory<String, String>(this.beanFactory)
 
         @Bean
         fun consumerFactoryWithProvidedDeserializerFactory(): FactorySuppliedDeserializerKafkaConsumerFactory<String, String> {

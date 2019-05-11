@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 the original author or authors.
+ * Copyright 2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,15 +15,11 @@
  */
 package org.springframework.kafka.core
 
-import org.apache.kafka.common.serialization.Deserializer
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import org.mockito.BDDMockito.given
-import org.mockito.Mockito.mock
-import org.springframework.beans.factory.NoSuchBeanDefinitionException
-import org.springframework.beans.factory.config.ConfigurableListableBeanFactory
+import org.mockito.Mockito
 
 /**
  * @author Chris Gilbert
@@ -33,64 +29,31 @@ class BeanLookupKafkaDeserializerFactoryTests {
 
     @Test
     fun `ensure consumer factory specific deserializer is retrieved`() {
-        val expected: Deserializer<String> = StringDeserializer()
-        val beanFactory: ConfigurableListableBeanFactory = mock(ConfigurableListableBeanFactory::class.java)
-        given(beanFactory.getBean("deserializer", Deserializer::class.java)).willReturn(expected)
-        val target: BeanLookupKafkaDeserializerFactory<String, String> = BeanLookupKafkaDeserializerFactory()
-        target.setBeanFactory(beanFactory)
-        target.keyDeserializersForConsumerFactories["factory"] = "deserializer"
+        val target = TargetBeanLookupKafkDeserializerFactory()
+        val expected = StringDeserializer()
+        given(target.keyDeserializerFactory.getOrDefault("factory")).willReturn(expected)
         assertThat(target.getKeyDeserializer("factory")).isSameAs(expected)
 
-    }
-
-    @Test
-    fun `ensure default deserializer is retrieved when none exists for the specified consumer factory`() {
-        val expected: Deserializer<String> = StringDeserializer()
-        val beanFactory: ConfigurableListableBeanFactory = mock(ConfigurableListableBeanFactory::class.java)
-        given(beanFactory.getBean("deserializer", Deserializer::class.java)).willReturn(expected)
-        val target: BeanLookupKafkaDeserializerFactory<String, String> = BeanLookupKafkaDeserializerFactory()
-        target.setBeanFactory(beanFactory)
-        target.keyDeserializersForConsumerFactories["default"] = "deserializer"
-        assertThat(target.getKeyDeserializer("factory")).isSameAs(expected)
-    }
-
-    @Test
-    fun `ensure that more than one default deserializer cannot be registered`() {
-        val target: BeanLookupKafkaDeserializerFactory<String, String> = BeanLookupKafkaDeserializerFactory()
-        target.registerKeyDeserializer("deserializer")
-        assertThrows<IllegalStateException> { target.registerKeyDeserializer("anotherDeserializer") }
-    }
-
-    @Test
-    fun `ensure that more than one deserializer of the same type cannot be registered for the same consumer factory`() {
-        val target: BeanLookupKafkaDeserializerFactory<String, String> = BeanLookupKafkaDeserializerFactory()
-        target.registerKeyDeserializer("deserializer")
-        assertThrows<IllegalStateException> { target.registerKeyDeserializer("anotherDeserializer") }
-    }
-
-    @Test
-    fun `ensure that a deserializer cannot be registered if it is not known to the bean factory`() {
-        val beanFactory: ConfigurableListableBeanFactory = mock(ConfigurableListableBeanFactory::class.java)
-        given(beanFactory.getBeanDefinition("deserializer")).willThrow(NoSuchBeanDefinitionException(""))
-        val target: BeanLookupKafkaDeserializerFactory<String, String> = BeanLookupKafkaDeserializerFactory()
-        target.setBeanFactory(beanFactory)
-        assertThrows<NoSuchBeanDefinitionException> { target.registerKeyDeserializer("deserializer") }
-    }
-
-    @Test
-    fun `ensure that a deserializer cannot be registered to a consumer factory that is not known to the bean factory`() {
-        val beanFactory: ConfigurableListableBeanFactory = mock(ConfigurableListableBeanFactory::class.java)
-        given(beanFactory.getBeanDefinition("factory")).willThrow(NoSuchBeanDefinitionException(""))
-        val target: BeanLookupKafkaDeserializerFactory<String, String> = BeanLookupKafkaDeserializerFactory()
-        target.setBeanFactory(beanFactory)
-        assertThrows<NoSuchBeanDefinitionException> { target.registerKeyDeserializer("factory", "deserializer") }
     }
 
     @Test
     fun `ensure that all registered beans are returned correctly`() {
-        val target: BeanLookupKafkaDeserializerFactory<String, String> = BeanLookupKafkaDeserializerFactory()
-        target.keyDeserializersForConsumerFactories = mapOf(Pair("default", "deserializer1"), Pair("factory", "deserializer1"))
-        target.valueDeserializersForConsumerFactories = mapOf(Pair("default", "deserializer1"), Pair("factory", "deserializer2"))
-        assertThat(target.allRegisteredBeans).containsExactly("deserializer1", "deserializer2")
+        val target = TargetBeanLookupKafkDeserializerFactory()
+        given(target.keyDeserializerFactory.allMappedBeanNames).willReturn(setOf("deserializer1", "deserializer2"))
+        given(target.valueDeserializerFactory.allMappedBeanNames).willReturn(setOf("deserializer2", "deserializer3"))
+        assertThat(target.allRegisteredBeans).containsExactlyInAnyOrder("deserializer1", "deserializer2", "deserializer3")
     }
+
+    class TargetBeanLookupKafkDeserializerFactory : BeanLookupKafkaDeserializerFactory<String, String>  {
+
+        constructor() : super(null) {
+            this.keyDeserializerFactory = mockGenericised()
+            this.valueDeserializerFactory = mockGenericised()
+
+        }
+
+        inline fun <reified T: Any> mockGenericised() = Mockito.mock(T::class.java)
+    }
+
+
 }
