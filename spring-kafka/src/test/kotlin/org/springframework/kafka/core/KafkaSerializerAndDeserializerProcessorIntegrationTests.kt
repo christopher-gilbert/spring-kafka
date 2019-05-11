@@ -1,3 +1,18 @@
+/*
+ * Copyright 2016-2019 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.springframework.kafka.core
 
 import org.apache.kafka.common.serialization.Deserializer
@@ -18,9 +33,12 @@ import org.springframework.test.annotation.DirtiesContext
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig
 import javax.annotation.Resource
 
+/**
+ * @author Chris Gilbert
+ */
 @SpringJUnitConfig
 @DirtiesContext
-class KafkaSerializerAndDeserializerAnnotationBeanPostProcessorIntegrationTests {
+class KafkaSerializerAndDeserializerProcessorIntegrationTests {
 
     @Resource(name = "consumerFactory")
     private lateinit var consumerFactory: FactorySuppliedDeserializerKafkaConsumerFactory<String, String>
@@ -61,7 +79,11 @@ class KafkaSerializerAndDeserializerAnnotationBeanPostProcessorIntegrationTests 
 
     @Test
     fun `ensure bean that is key and value deserializer is registered as both`() {
-//TODO
+        assertThat(this.consumerFactory.deserializerFactory
+                .getKeyDeserializer("consumerFactory4"))
+                .isEqualTo(this.consumerFactory.deserializerFactory
+                        .getValueDeserializer("consumerFactory4"))
+                .isInstanceOf(KeyAndValueDeserializer::class.java)
     }
 
     @Test
@@ -76,20 +98,29 @@ class KafkaSerializerAndDeserializerAnnotationBeanPostProcessorIntegrationTests 
     class Config {
 
         @Bean
-        fun consumerFactory(): FactorySuppliedDeserializerKafkaConsumerFactory<String, String> = FactorySuppliedDeserializerKafkaConsumerFactory(HashMap<String, Any>())
+        fun consumerFactory(): FactorySuppliedDeserializerKafkaConsumerFactory<String, String>
+                = FactorySuppliedDeserializerKafkaConsumerFactory(HashMap<String, Any>())
 
         @Bean
-        fun consumerFactory2(): FactorySuppliedDeserializerKafkaConsumerFactory<String, String> = FactorySuppliedDeserializerKafkaConsumerFactory(HashMap<String, Any>())
+        fun consumerFactory2(): FactorySuppliedDeserializerKafkaConsumerFactory<String, String>
+                = FactorySuppliedDeserializerKafkaConsumerFactory(HashMap<String, Any>())
 
         @Bean
-        fun consumerFactory3(): FactorySuppliedDeserializerKafkaConsumerFactory<String, String> = FactorySuppliedDeserializerKafkaConsumerFactory(HashMap<String, Any>())
+        fun consumerFactory3(): FactorySuppliedDeserializerKafkaConsumerFactory<String, String>
+                = FactorySuppliedDeserializerKafkaConsumerFactory(HashMap<String, Any>())
 
         @Bean
-        fun deserializerFactory(): KafkaDeserializerFactory<String, String> = BeanLookupKafkaDeserializerFactory<String, String>()
+        fun consumerFactory4(): FactorySuppliedDeserializerKafkaConsumerFactory<String, String>
+                = FactorySuppliedDeserializerKafkaConsumerFactory(HashMap<String, Any>())
+
+        @Bean
+        fun deserializerFactory(): KafkaDeserializerFactory<String, String>
+                = BeanLookupKafkaDeserializerFactory<String, String>()
 
         @Bean
         fun consumerFactoryWithProvidedDeserializerFactory(): FactorySuppliedDeserializerKafkaConsumerFactory<String, String> {
-            val factory: FactorySuppliedDeserializerKafkaConsumerFactory<String, String> = FactorySuppliedDeserializerKafkaConsumerFactory(HashMap<String, Any>())
+            val factory: FactorySuppliedDeserializerKafkaConsumerFactory<String, String>
+                    = FactorySuppliedDeserializerKafkaConsumerFactory(HashMap<String, Any>())
             factory.deserializerFactory = deserializerFactory()
             return factory
         }
@@ -109,12 +140,28 @@ class KafkaSerializerAndDeserializerAnnotationBeanPostProcessorIntegrationTests 
         }
 
         @Bean
+        fun kafkaListenerContainerFactory3(): ConcurrentKafkaListenerContainerFactory<String, String> {
+            val factory: ConcurrentKafkaListenerContainerFactory<String, String> = ConcurrentKafkaListenerContainerFactory()
+            factory.consumerFactory = consumerFactory4()
+            return factory
+        }
+
+        @Bean
         @KafkaKeyDeserializer(consumerFactories = ["consumerFactory"])
         fun configurationDeserializer(): Deserializer<String> = StringDeserializer()
+
+
+        @Bean
+        @KafkaKeyDeserializer(consumerFactories = ["consumerFactory4"])
+        @KafkaValueDeserializer(consumerFactories = ["consumerFactory4"])
+        fun keyAndValueDeserializer(): Deserializer<String> = KeyAndValueDeserializer("test")
 
     }
 
     @Component
     @KafkaValueDeserializer
     class ComponentDeserializer : IntegerDeserializer()
+
+
+    data class KeyAndValueDeserializer(val field: String) : StringDeserializer()
 }

@@ -49,8 +49,10 @@ public class BeanLookupKafkaDeserializerFactory<K, V> implements KafkaDeserializ
 
 	private static final String VALUE_TYPE = "value";
 
+	// visible for testing
 	protected Map<String, String> keyDeserializersForConsumerFactories = new ConcurrentHashMap<>();
 
+	// visible for testing
 	protected Map<String, String> valueDeserializersForConsumerFactories = new ConcurrentHashMap<>();
 
 	@Override
@@ -158,7 +160,7 @@ public class BeanLookupKafkaDeserializerFactory<K, V> implements KafkaDeserializ
 	 * Return a set of all the deserializer beans that have been registered against any consumer factories as
 	 * key or value deserializers.
 	 *
-	 * @return
+	 * @return the set of bean names
 	 */
 	public Set<String> getAllRegisteredBeans() {
 		return Stream.concat(keyDeserializersForConsumerFactories.values().stream(), valueDeserializersForConsumerFactories.values().stream())
@@ -169,9 +171,9 @@ public class BeanLookupKafkaDeserializerFactory<K, V> implements KafkaDeserializ
 	 * Ensure that there is not already a deserializer of the same type registered for the same consumer factory,
 	 * and also ensure that the BeanFactory contains the expected beans and that they are of the expected type.
 	 *
-	 * @param consumerFactoryBeanName
-	 * @param deserializerBeanName
-	 * @param type
+	 * @param consumerFactoryBeanName the bean name for the consumer factory that uses the deserializer
+	 * @param deserializerBeanName the bean name of the deserializer
+	 * @param type either KEY_TYPE or VALUE_TYPE
 	 */
 	private void validateBeans(String consumerFactoryBeanName, String deserializerBeanName, String type) {
 		if ((KEY_TYPE.equals(type) && keyDeserializersForConsumerFactories.containsKey(consumerFactoryBeanName))

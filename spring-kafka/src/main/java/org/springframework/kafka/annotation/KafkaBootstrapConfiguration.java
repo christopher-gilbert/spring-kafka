@@ -27,7 +27,7 @@ import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
  * {@code @Configuration} class that registers a {@link KafkaListenerAnnotationBeanPostProcessor}
  * bean capable of processing Spring's @{@link KafkaListener} annotation. Also register
  * a default {@link KafkaListenerEndpointRegistry}. Also register a
- * {@link KafkaSerializerAndDeserializerAnnotationBeanPostProcessor}, to process any
+ * {@link KafkaSerializerAndDeserializerProcessor}, to process any
  * Kafka serializer or deserializer annotation.
  *
  * <p>This configuration class is automatically imported when using the @{@link EnableKafka}
@@ -58,8 +58,8 @@ public class KafkaBootstrapConfiguration {
 
 	@Bean(name = KafkaListenerConfigUtils.KAFKA_SERIALIZER_DESERIALIZER_ANNOTATION_PROCESSOR_BEAN_NAME)
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	public KafkaSerializerAndDeserializerAnnotationBeanPostProcessor kafkaSerializerAndDeserializerAnnotationProcessor() {
-		return new KafkaSerializerAndDeserializerAnnotationBeanPostProcessor();
+	public KafkaSerializerAndDeserializerProcessor kafkaSerializerAndDeserializerAnnotationProcessor() {
+		return new KafkaSerializerAndDeserializerProcessor();
 	}
 
 

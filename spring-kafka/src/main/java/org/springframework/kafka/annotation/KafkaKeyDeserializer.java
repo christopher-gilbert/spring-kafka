@@ -29,8 +29,11 @@ import java.lang.annotation.Target;
  * (either a {@link org.springframework.context.annotation.Bean} annotated method or a
  * {@link org.springframework.stereotype.Component} annotated type) which signifies that the bean is to be used as a
  * Deserializer for {@link org.apache.kafka.clients.consumer.ConsumerRecord} keys received by a
- * {@link org.springframework.kafka.core.FactorySuppliedDeserializerKafkaConsumerFactory} created with an
+ * {@link org.apache.kafka.clients.consumer.KafkaConsumer} from a
+ * {@link org.springframework.kafka.core.FactorySuppliedDeserializerKafkaConsumerFactory} created with a
  * {@link BeanLookupKafkaDeserializerFactory}.
+ *
+ * eg //TODO example config code
  *
  * @author Chris Gilbert
  */

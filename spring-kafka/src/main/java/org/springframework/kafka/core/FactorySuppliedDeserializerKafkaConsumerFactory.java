@@ -38,7 +38,7 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.GROUP_ID_CONFIG;
  * deserializers for each Consumer that is constructed.
  *
  * Users may provide their own implementation of {@link KafkaDeserializerFactory}, or alternatively an
- * {@link BeanLookupKafkaDeserializerFactory} is implicitly created and populated by any
+ * {@link BeanLookupKafkaDeserializerFactory} is implicitly created and populated with any
  * Deserializers annotated as {@link org.springframework.kafka.annotation.KafkaKeyDeserializer} or
  * {@link org.springframework.kafka.annotation.KafkaValueDeserializer}
  *
@@ -70,7 +70,7 @@ public class FactorySuppliedDeserializerKafkaConsumerFactory<K, V> implements Co
 	 * @param deserializerFactory the factory for providing key and value deserializer instances
 	 */
 	public FactorySuppliedDeserializerKafkaConsumerFactory(Map<String, Object> configs,
-														   KafkaDeserializerFactory<K, V> deserializerFactory) {
+														   @Nullable  KafkaDeserializerFactory<K, V> deserializerFactory) {
 		this.configs = new HashMap<>(configs);
 		this.deserializerFactory = deserializerFactory;
 	}
@@ -94,12 +94,12 @@ public class FactorySuppliedDeserializerKafkaConsumerFactory<K, V> implements Co
 
 	@Override
 	public Deserializer<K> getKeyDeserializer() {
-		return this.deserializerFactory.getKeyDeserializer(this.name);
+		return hasDeserializerFactory() ? this.deserializerFactory.getKeyDeserializer(this.name) : null;
 	}
 
 	@Override
 	public Deserializer<V> getValueDeserializer() {
-		return this.deserializerFactory.getValueDeserializer(this.name);
+		return hasDeserializerFactory() ? this.deserializerFactory.getValueDeserializer(this.name) : null;
 	}
 
 	@Override
@@ -142,11 +142,11 @@ public class FactorySuppliedDeserializerKafkaConsumerFactory<K, V> implements Co
 	 * client id suffix is appended to the client id prefix which overrides the
 	 * {@code client.id} property, if present in config.
 	 *
-	 * @param clientIdPrefix
-	 * @param clientIdSuffix
-	 * @return
+	 * @param clientIdPrefix overriding value for the clientId excluding any suffix
+	 * @param clientIdSuffix optional suffix to append to existing or overridden clientId
+	 * @return final client ID derived according to the {@link ConsumerFactory#createConsumer(String, String, String)} rules
 	 */
-	private String deriveClientId(@Nullable String clientIdPrefix,
+	private @Nullable String deriveClientId(@Nullable String clientIdPrefix,
 								  @Nullable final String clientIdSuffix) {
 		String clientId = this.configs.get(CLIENT_ID_CONFIG) != null ? this.configs.get(CLIENT_ID_CONFIG).toString() : null;
 		clientId = StringUtils.hasText(clientIdPrefix) ? clientIdPrefix : clientId;
@@ -175,7 +175,7 @@ public class FactorySuppliedDeserializerKafkaConsumerFactory<K, V> implements Co
 		if (propertiesAreOverridden(properties)) {
 			modifiedConfigs.putAll(properties.stringPropertyNames()
 											 .stream()
-											 .collect(Collectors.toMap(Function.identity(), name -> properties.getProperty(name))));
+											 .collect(Collectors.toMap(Function.identity(), properties::getProperty)));
 		}
 		if (groupIdIsOverridden(groupId)) {
 			modifiedConfigs.put(GROUP_ID_CONFIG, groupId);

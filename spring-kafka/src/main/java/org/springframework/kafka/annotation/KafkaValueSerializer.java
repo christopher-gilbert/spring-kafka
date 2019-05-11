@@ -25,13 +25,13 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Annotation which may be applied to a {@link org.apache.kafka.common.serialization.Deserializer} bean definition
+ * Annotation which may be applied to a {@link org.apache.kafka.common.serialization.Serializer} bean definition
  * (either a {@link org.springframework.context.annotation.Bean} annotated method or a
  * {@link org.springframework.stereotype.Component} annotated type) which signifies that the bean is to be used as a
- * Deserializer for {@link org.apache.kafka.clients.consumer.ConsumerRecord} values received by a
- * {@link org.apache.kafka.clients.consumer.KafkaConsumer} from a
- * {@link org.springframework.kafka.core.FactorySuppliedDeserializerKafkaConsumerFactory} created with a
- * {@link BeanLookupKafkaDeserializerFactory}.
+ * Serializer for {@link org.apache.kafka.clients.producer.ProducerRecord} values sent by a
+ * {@link org.apache.kafka.clients.producer.KafkaProducer} from a
+ * {@link org.springframework.kafka.core.FactorySuppliedSerializerKafkaProducerFactory} created with a
+ * {@link BeanLookupKafkaSerializerFactory}.
  *
  * eg //TODO example config code
  *
@@ -40,11 +40,11 @@ import java.lang.annotation.Target;
 @Target({ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-public @interface KafkaValueDeserializer {
+public @interface KafkaValueSerializer {
 
 	/**
-	 * Bean names for specific ConsumerFactories for which the annotated Deserializer is applicable. If omitted then
-	 * the Deserializer will apply to any ConsumerFactories that do not have a specific value deserializer.
+	 * Bean names for specific ProducerFactories for which the annotated Deserializer is applicable. If omitted then
+	 * the Serializer will apply to any ProducerFactories that do not have a specific value serializer.
 	 *
 	 * @return the array of ConsumerFactory bean names.
 	 */
