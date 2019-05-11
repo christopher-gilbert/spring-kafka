@@ -21,9 +21,13 @@ import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.BeanNotOfRequiredTypeException;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * {@link KafkaDeserializerFactory} implementation that retains a set of bean names and a {@link BeanFactory} reference
@@ -45,9 +49,9 @@ public class BeanLookupKafkaDeserializerFactory<K, V> implements KafkaDeserializ
 
 	private static final String VALUE_TYPE = "value";
 
-	private Map<String, String> keyDeserializersForConsumerFactories = new ConcurrentHashMap<>();
+	protected Map<String, String> keyDeserializersForConsumerFactories = new ConcurrentHashMap<>();
 
-	private Map<String, String> valueDeserializersForConsumerFactories = new ConcurrentHashMap<>();
+	protected Map<String, String> valueDeserializersForConsumerFactories = new ConcurrentHashMap<>();
 
 	@Override
 	public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
@@ -98,10 +102,8 @@ public class BeanLookupKafkaDeserializerFactory<K, V> implements KafkaDeserializ
 	 * {@link Deserializer}.
 	 *
 	 * @param deserializerBeanName the name of the {@link Deserializer} bean
-	 * @throws NoSuchBeanDefinitionException  if there is no bean with this name in the current application.
-	 * @throws BeanNotOfRequiredTypeException if the bean is not a {@link Deserializer}.
-	 * @throws BeansException                 if the bean could not be created.
-	 * @throws IllegalStateException          if there is already a default key deserializer bean registered.
+	 * @throws NoSuchBeanDefinitionException if there is no bean with this name in the current application.
+	 * @throws IllegalStateException         if there is already a default key deserializer bean registered.
 	 */
 	public void registerKeyDeserializer(String deserializerBeanName) {
 		registerKeyDeserializer(ANY_CONSUMER_FACTORY, deserializerBeanName);
@@ -113,12 +115,9 @@ public class BeanLookupKafkaDeserializerFactory<K, V> implements KafkaDeserializ
 	 *
 	 * @param consumerFactoryBeanName the name of the {@link FactorySuppliedDeserializerKafkaConsumerFactory}
 	 * @param deserializerBeanName    the name of the {@link Deserializer} bean
-	 * @throws NoSuchBeanDefinitionException  if either of the provided bean names do not match beans in the current
-	 *                                        application.
-	 * @throws BeanNotOfRequiredTypeException if the consumerFactoryBeanName is not a
-	 *                                        {@link FactorySuppliedDeserializerKafkaConsumerFactory} or the deserializerBeanName is not a {@link Deserializer}
-	 * @throws BeansException                 if either of the beans could not be created.
-	 * @throws IllegalStateException          if there is already a key deserializer bean registered for the given consumer factory.
+	 * @throws NoSuchBeanDefinitionException if either of the provided bean names do not match beans in the current
+	 *                                       application.
+	 * @throws IllegalStateException         if there is already a key deserializer bean registered for the given consumer factory.
 	 */
 	public void registerKeyDeserializer(String consumerFactoryBeanName, String deserializerBeanName) {
 		validateBeans(consumerFactoryBeanName, deserializerBeanName, KEY_TYPE);
@@ -146,16 +145,24 @@ public class BeanLookupKafkaDeserializerFactory<K, V> implements KafkaDeserializ
 	 *
 	 * @param consumerFactoryBeanName the name of the {@link FactorySuppliedDeserializerKafkaConsumerFactory}
 	 * @param deserializerBeanName    the name of the {@link Deserializer} bean
-	 * @throws NoSuchBeanDefinitionException  if either of the provided bean names do not match beans in the current
-	 *                                        application.
-	 * @throws BeanNotOfRequiredTypeException if the consumerFactoryBeanName is not a
-	 *                                        {@link FactorySuppliedDeserializerKafkaConsumerFactory} or the deserializerBeanName is not a {@link Deserializer}
-	 * @throws BeansException                 if either of the beans could not be created.
-	 * @throws IllegalStateException          if there is already a value deserializer bean registered for the given consumer factory.
+	 * @throws NoSuchBeanDefinitionException if either of the provided bean names do not match beans in the current
+	 *                                       application.
+	 * @throws IllegalStateException         if there is already a value deserializer bean registered for the given consumer factory.
 	 */
 	public void registerValueDeserializer(String consumerFactoryBeanName, String deserializerBeanName) {
 		validateBeans(consumerFactoryBeanName, deserializerBeanName, VALUE_TYPE);
 		valueDeserializersForConsumerFactories.put(consumerFactoryBeanName, deserializerBeanName);
+	}
+
+	/**
+	 * Return a set of all the deserializer beans that have been registered against any consumer factories as
+	 * key or value deserializers.
+	 *
+	 * @return
+	 */
+	public Set<String> getAllRegisteredBeans() {
+		return Stream.concat(keyDeserializersForConsumerFactories.values().stream(), valueDeserializersForConsumerFactories.values().stream())
+					 .collect(Collectors.toSet());
 	}
 
 	/**
@@ -169,13 +176,13 @@ public class BeanLookupKafkaDeserializerFactory<K, V> implements KafkaDeserializ
 	private void validateBeans(String consumerFactoryBeanName, String deserializerBeanName, String type) {
 		if ((KEY_TYPE.equals(type) && keyDeserializersForConsumerFactories.containsKey(consumerFactoryBeanName))
 				|| (VALUE_TYPE.equals(type) && valueDeserializersForConsumerFactories.containsKey(consumerFactoryBeanName))) {
-			throw new IllegalStateException("Attempt to register more than one " + consumerFactoryBeanName + " " + type + " deserializer");
+			throw new IllegalStateException(String.format("Attempt to register more than one %s %s deserializer", consumerFactoryBeanName, type));
 		}
-		// TODO revisit this - as bean is a prototype there may be side effects we don't want at this stage
-		//can we check that the beanDefinition exists rather than getting a bewn
-		beanFactory.getBean(deserializerBeanName, Deserializer.class);
+		if (beanFactory instanceof ConfigurableListableBeanFactory) {
+			((ConfigurableListableBeanFactory) beanFactory).getBeanDefinition(deserializerBeanName);
+		}
 		if (!ANY_CONSUMER_FACTORY.equals(consumerFactoryBeanName)) {
-			beanFactory.getBean(deserializerBeanName, Deserializer.class);
+			((ConfigurableListableBeanFactory) beanFactory).getBeanDefinition(consumerFactoryBeanName);
 		}
 	}
 

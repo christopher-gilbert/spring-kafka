@@ -15,6 +15,7 @@
  */
 package org.springframework.kafka.annotation;
 
+import org.apache.commons.logging.LogFactory;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
@@ -24,12 +25,16 @@ import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.context.annotation.ScannedGenericBeanDefinition;
+import org.springframework.core.log.LogAccessor;
 import org.springframework.core.type.StandardMethodMetadata;
 import org.springframework.kafka.config.AbstractKafkaListenerContainerFactory;
 import org.springframework.kafka.core.BeanLookupKafkaDeserializerFactory;
 import org.springframework.kafka.core.FactorySuppliedDeserializerKafkaConsumerFactory;
 
 import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * PostProcessor that provides any {@link FactorySuppliedDeserializerKafkaConsumerFactory}s that have been added to
@@ -44,6 +49,8 @@ public class KafkaSerializerAndDeserializerAnnotationBeanPostProcessor implement
 	private BeanLookupKafkaDeserializerFactory deserializerFactory = new BeanLookupKafkaDeserializerFactory();
 
 	private BeanFactory beanFactory;
+
+	private final LogAccessor logger = new LogAccessor(LogFactory.getLog(getClass()));
 
 	@Override
 	public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
@@ -85,7 +92,7 @@ public class KafkaSerializerAndDeserializerAnnotationBeanPostProcessor implement
 				}
 			}
 		}
-
+		checkForIncorrectlyAnnotatedBeans();
 	}
 
 
@@ -111,4 +118,18 @@ public class KafkaSerializerAndDeserializerAnnotationBeanPostProcessor implement
 		}
 	}
 
+	private void checkForIncorrectlyAnnotatedBeans() {
+		if (this.beanFactory instanceof ConfigurableListableBeanFactory) {
+			String[] keyDeserializers = ((ConfigurableListableBeanFactory) this.beanFactory).getBeanNamesForAnnotation(KafkaKeyDeserializer.class);
+			String[] valueDeserializers = ((ConfigurableListableBeanFactory) this.beanFactory).getBeanNamesForAnnotation(KafkaValueDeserializer.class);
+			Set<String> annotatedBeans = Stream.concat(Arrays.stream(keyDeserializers), Arrays.stream(valueDeserializers))
+											   .collect(Collectors.toSet());
+			annotatedBeans.removeAll(this.deserializerFactory.getAllRegisteredBeans());
+			if (!annotatedBeans.isEmpty()) {
+				logger.warn(() -> "Kafka Deserializer or Serializer annotations found on beans that are not of type Deserializer or Serializer" +
+						" - these will be not be used, but will cause the beans to be prototype scope");
+			}
+
+		}
+	}
 }

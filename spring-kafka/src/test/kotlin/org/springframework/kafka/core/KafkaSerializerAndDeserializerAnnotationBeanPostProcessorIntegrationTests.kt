@@ -15,7 +15,6 @@ import org.springframework.kafka.annotation.KafkaValueDeserializer
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory
 import org.springframework.stereotype.Component
 import org.springframework.test.annotation.DirtiesContext
-import org.springframework.test.context.ContextConfiguration
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig
 import javax.annotation.Resource
 
@@ -58,6 +57,11 @@ class KafkaSerializerAndDeserializerAnnotationBeanPostProcessorIntegrationTests 
                 .getKeyDeserializer("consumerFactory"))
                 .isInstanceOf(StringDeserializer::class.java)
 
+    }
+
+    @Test
+    fun `ensure bean that is key and value deserializer is registered as both`() {
+//TODO
     }
 
     @Test
