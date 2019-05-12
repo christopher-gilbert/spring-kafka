@@ -32,7 +32,7 @@ import java.util.Properties;
  * <p>
  * Note that the same {@link Deserializer} instances are shared by all the created {@link KafkaConsumer}s. If you are
  * using Deserializers that cannot be reused once closed then you should use a
- * {@link FactorySuppliedDeserializerKafkaConsumerFactory} with a DeserializerFactory that provides new instances
+ * {@link KafkaConsumerFactoryWithDeserializerFactory} with a DeserializerFactory that provides new instances
  * on retrieval.
  *
  * @param <K> the key type.
@@ -40,11 +40,11 @@ import java.util.Properties;
  * @author Gary Russell
  * @author Murali Reddy
  * @author Artem Bilan
- * @author Chris Gilbert (moved original implementation to {@link FactorySuppliedDeserializerKafkaConsumerFactory})
+ * @author Chris Gilbert (moved original implementation to {@link KafkaConsumerFactoryWithDeserializerFactory})
  */
 public class DefaultKafkaConsumerFactory<K, V> implements ConsumerFactory<K, V> {
 
-	private final FactorySuppliedDeserializerKafkaConsumerFactory<K, V> delegate;
+	private final KafkaConsumerFactoryWithDeserializerFactory<K, V> delegate;
 
 	private final SingleInstanceKafkaDeserializerFactory deserializerFactory;
 
@@ -68,7 +68,7 @@ public class DefaultKafkaConsumerFactory<K, V> implements ConsumerFactory<K, V> 
 									   @Nullable Deserializer<K> keyDeserializer,
 									   @Nullable Deserializer<V> valueDeserializer) {
 		this.deserializerFactory = new SingleInstanceKafkaDeserializerFactory(keyDeserializer, valueDeserializer);
-		this.delegate = new FactorySuppliedDeserializerKafkaConsumerFactory(configs, this.deserializerFactory);
+		this.delegate = new KafkaConsumerFactoryWithDeserializerFactory(configs, this.deserializerFactory);
 	}
 
 	public void setKeyDeserializer(@Nullable Deserializer<K> keyDeserializer) {

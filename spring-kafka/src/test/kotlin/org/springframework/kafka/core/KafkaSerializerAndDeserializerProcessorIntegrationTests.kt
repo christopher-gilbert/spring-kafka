@@ -42,10 +42,10 @@ import javax.annotation.Resource
 class KafkaSerializerAndDeserializerProcessorIntegrationTests {
 
     @Resource(name = "consumerFactory")
-    private lateinit var consumerFactory: FactorySuppliedDeserializerKafkaConsumerFactory<String, String>
+    private lateinit var consumerFactory: KafkaConsumerFactoryWithDeserializerFactory<String, String>
 
     @Resource(name = "consumerFactoryWithProvidedDeserializerFactory")
-    private lateinit var consumerFactoryWithProvidedDeserializerFactory: FactorySuppliedDeserializerKafkaConsumerFactory<String, String>
+    private lateinit var consumerFactoryWithProvidedDeserializerFactory: KafkaConsumerFactoryWithDeserializerFactory<String, String>
 
     @Autowired
     private lateinit var providedDeserializerFactory: KafkaDeserializerFactory<String, String>
@@ -103,29 +103,29 @@ class KafkaSerializerAndDeserializerProcessorIntegrationTests {
         private lateinit var beanFactory: BeanFactory
 
         @Bean
-        fun consumerFactory(): FactorySuppliedDeserializerKafkaConsumerFactory<String, String>
-                = FactorySuppliedDeserializerKafkaConsumerFactory(HashMap<String, Any>())
+        fun consumerFactory(): KafkaConsumerFactoryWithDeserializerFactory<String, String>
+                = KafkaConsumerFactoryWithDeserializerFactory(HashMap<String, Any>())
 
         @Bean
-        fun consumerFactory2(): FactorySuppliedDeserializerKafkaConsumerFactory<String, String>
-                = FactorySuppliedDeserializerKafkaConsumerFactory(HashMap<String, Any>())
+        fun consumerFactory2(): KafkaConsumerFactoryWithDeserializerFactory<String, String>
+                = KafkaConsumerFactoryWithDeserializerFactory(HashMap<String, Any>())
 
         @Bean
-        fun consumerFactory3(): FactorySuppliedDeserializerKafkaConsumerFactory<String, String>
-                = FactorySuppliedDeserializerKafkaConsumerFactory(HashMap<String, Any>())
+        fun consumerFactory3(): KafkaConsumerFactoryWithDeserializerFactory<String, String>
+                = KafkaConsumerFactoryWithDeserializerFactory(HashMap<String, Any>())
 
         @Bean
-        fun consumerFactory4(): FactorySuppliedDeserializerKafkaConsumerFactory<String, String>
-                = FactorySuppliedDeserializerKafkaConsumerFactory(HashMap<String, Any>())
+        fun consumerFactory4(): KafkaConsumerFactoryWithDeserializerFactory<String, String>
+                = KafkaConsumerFactoryWithDeserializerFactory(HashMap<String, Any>())
 
         @Bean
         fun deserializerFactory(): KafkaDeserializerFactory<String, String>
                 = BeanLookupKafkaDeserializerFactory<String, String>(this.beanFactory)
 
         @Bean
-        fun consumerFactoryWithProvidedDeserializerFactory(): FactorySuppliedDeserializerKafkaConsumerFactory<String, String> {
-            val factory: FactorySuppliedDeserializerKafkaConsumerFactory<String, String>
-                    = FactorySuppliedDeserializerKafkaConsumerFactory(HashMap<String, Any>())
+        fun consumerFactoryWithProvidedDeserializerFactory(): KafkaConsumerFactoryWithDeserializerFactory<String, String> {
+            val factory: KafkaConsumerFactoryWithDeserializerFactory<String, String>
+                    = KafkaConsumerFactoryWithDeserializerFactory(HashMap<String, Any>())
             factory.deserializerFactory = deserializerFactory()
             return factory
         }

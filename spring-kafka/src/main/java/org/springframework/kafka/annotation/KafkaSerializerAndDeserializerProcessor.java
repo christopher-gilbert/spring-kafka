@@ -29,7 +29,7 @@ import org.springframework.core.log.LogAccessor;
 import org.springframework.core.type.StandardMethodMetadata;
 import org.springframework.kafka.config.AbstractKafkaListenerContainerFactory;
 import org.springframework.kafka.core.BeanLookupKafkaDeserializerFactory;
-import org.springframework.kafka.core.FactorySuppliedDeserializerKafkaConsumerFactory;
+import org.springframework.kafka.core.KafkaConsumerFactoryWithDeserializerFactory;
 
 import java.util.Arrays;
 import java.util.Set;
@@ -37,7 +37,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * PostProcessor that provides any {@link FactorySuppliedDeserializerKafkaConsumerFactory} beans that have been added to
+ * PostProcessor that provides any {@link KafkaConsumerFactoryWithDeserializerFactory} beans that have been added to
  * {@link org.springframework.kafka.config.KafkaListenerContainerFactory}s with a new instance of
  * {@link org.springframework.kafka.core.KafkaDeserializerFactory} that is populated based on
  * {@link KafkaKeyDeserializer} or {@link KafkaValueDeserializer} annotated beans of type {@link Deserializer}.
@@ -68,9 +68,9 @@ public class KafkaSerializerAndDeserializerProcessor implements BeanPostProcesso
 	public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
 		if (bean instanceof AbstractKafkaListenerContainerFactory) {
 			AbstractKafkaListenerContainerFactory consumerFactoryOwner = (AbstractKafkaListenerContainerFactory) bean;
-			if (consumerFactoryOwner.getConsumerFactory() instanceof FactorySuppliedDeserializerKafkaConsumerFactory) {
-				FactorySuppliedDeserializerKafkaConsumerFactory consumerFactory =
-						(FactorySuppliedDeserializerKafkaConsumerFactory) consumerFactoryOwner.getConsumerFactory();
+			if (consumerFactoryOwner.getConsumerFactory() instanceof KafkaConsumerFactoryWithDeserializerFactory) {
+				KafkaConsumerFactoryWithDeserializerFactory consumerFactory =
+						(KafkaConsumerFactoryWithDeserializerFactory) consumerFactoryOwner.getConsumerFactory();
 				if (!consumerFactory.hasDeserializerFactory()) {
 					consumerFactory.setDeserializerFactory(deserializerFactory);
 				}

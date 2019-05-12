@@ -16,14 +16,10 @@
 package org.springframework.kafka.core;
 
 import org.apache.kafka.common.serialization.Deserializer;
-import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
-import org.springframework.beans.factory.BeanNotOfRequiredTypeException;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
-import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 
 import java.util.Collection;
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -84,7 +80,7 @@ public class BeanLookupKafkaDeserializerFactory<K, V> implements KafkaDeserializ
 
 	/**
 	 * Register the given bean name as a key {@link Deserializer} that is suitable for any consumer created by a
-	 * {@link FactorySuppliedDeserializerKafkaConsumerFactory} that does not have its own specific
+	 * {@link KafkaConsumerFactoryWithDeserializerFactory} that does not have its own specific
 	 * {@link Deserializer}.
 	 *
 	 * @param deserializerBeanName the name of the {@link Deserializer} bean
@@ -97,9 +93,9 @@ public class BeanLookupKafkaDeserializerFactory<K, V> implements KafkaDeserializ
 
 	/**
 	 * Register the given bean name as a key {@link Deserializer} that is suitable for any consumer created by the
-	 * {@link FactorySuppliedDeserializerKafkaConsumerFactory} with the given factory bean name.
+	 * {@link KafkaConsumerFactoryWithDeserializerFactory} with the given factory bean name.
 	 *
-	 * @param consumerFactoryBeanName the name of the {@link FactorySuppliedDeserializerKafkaConsumerFactory}
+	 * @param consumerFactoryBeanName the name of the {@link KafkaConsumerFactoryWithDeserializerFactory}
 	 * @param deserializerBeanName    the name of the {@link Deserializer} bean
 	 * @throws NoSuchBeanDefinitionException if either of the provided bean names do not match beans in the current
 	 *                                       application.
@@ -111,7 +107,7 @@ public class BeanLookupKafkaDeserializerFactory<K, V> implements KafkaDeserializ
 
 	/**
 	 * Register the given bean name as a value {@link Deserializer} that is suitable for any consumer created by a
-	 * {@link FactorySuppliedDeserializerKafkaConsumerFactory} that does not have its own specific
+	 * {@link KafkaConsumerFactoryWithDeserializerFactory} that does not have its own specific
 	 * {@link Deserializer}.
 	 *
 	 * @param deserializerBeanName the name of the {@link Deserializer} bean
@@ -124,9 +120,9 @@ public class BeanLookupKafkaDeserializerFactory<K, V> implements KafkaDeserializ
 
 	/**
 	 * Register the given bean name as a value {@link Deserializer} that is suitable for any consumer created by the
-	 * {@link FactorySuppliedDeserializerKafkaConsumerFactory} with the given factory bean name.
+	 * {@link KafkaConsumerFactoryWithDeserializerFactory} with the given factory bean name.
 	 *
-	 * @param consumerFactoryBeanName the name of the {@link FactorySuppliedDeserializerKafkaConsumerFactory}
+	 * @param consumerFactoryBeanName the name of the {@link KafkaConsumerFactoryWithDeserializerFactory}
 	 * @param deserializerBeanName    the name of the {@link Deserializer} bean
 	 * @throws NoSuchBeanDefinitionException if either of the provided bean names do not match beans in the current
 	 *                                       application.

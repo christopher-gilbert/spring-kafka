@@ -46,7 +46,7 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.GROUP_ID_CONFIG;
  * @param <V> the value type in consumed {@link org.apache.kafka.clients.consumer.ConsumerRecord}s
  * @author Chris Gilbert (based on original {@link DefaultKafkaConsumerFactory}
  */
-public class FactorySuppliedDeserializerKafkaConsumerFactory<K, V> implements ConsumerFactory<K, V>, BeanNameAware {
+public class KafkaConsumerFactoryWithDeserializerFactory<K, V> implements ConsumerFactory<K, V>, BeanNameAware {
 
 	private final Map<String, Object> configs;
 
@@ -59,7 +59,7 @@ public class FactorySuppliedDeserializerKafkaConsumerFactory<K, V> implements Co
 	 *
 	 * @param configs the configuration.
 	 */
-	public FactorySuppliedDeserializerKafkaConsumerFactory(Map<String, Object> configs) {
+	public KafkaConsumerFactoryWithDeserializerFactory(Map<String, Object> configs) {
 		this(configs, null);
 	}
 
@@ -69,8 +69,8 @@ public class FactorySuppliedDeserializerKafkaConsumerFactory<K, V> implements Co
 	 * @param configs             the configuration.
 	 * @param deserializerFactory the factory for providing key and value deserializer instances
 	 */
-	public FactorySuppliedDeserializerKafkaConsumerFactory(Map<String, Object> configs,
-														   @Nullable  KafkaDeserializerFactory<K, V> deserializerFactory) {
+	public KafkaConsumerFactoryWithDeserializerFactory(Map<String, Object> configs,
+													   @Nullable  KafkaDeserializerFactory<K, V> deserializerFactory) {
 		this.configs = new HashMap<>(configs);
 		this.deserializerFactory = deserializerFactory;
 	}
