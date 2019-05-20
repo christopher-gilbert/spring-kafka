@@ -17,6 +17,7 @@ package org.springframework.kafka.annotation;
 
 import org.apache.commons.logging.LogFactory;
 import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serializer;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
@@ -28,10 +29,12 @@ import org.springframework.context.annotation.ScannedGenericBeanDefinition;
 import org.springframework.core.log.LogAccessor;
 import org.springframework.core.type.StandardMethodMetadata;
 import org.springframework.kafka.config.AbstractKafkaListenerContainerFactory;
-import org.springframework.kafka.core.BeanLookupKafkaDeserializerFactory;
-import org.springframework.kafka.core.KafkaConsumerFactoryWithDeserializerFactory;
+import org.springframework.kafka.core.*;
 
+import java.lang.reflect.AnnotatedElement;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -48,6 +51,8 @@ public class KafkaSerializerAndDeserializerProcessor implements BeanPostProcesso
 
 	private BeanLookupKafkaDeserializerFactory deserializerFactory;
 
+	private BeanLookupKafkaSerializerFactory serializerFactory;
+
 	private BeanFactory beanFactory;
 
 	private final LogAccessor logger = new LogAccessor(LogFactory.getLog(getClass()));
@@ -59,6 +64,7 @@ public class KafkaSerializerAndDeserializerProcessor implements BeanPostProcesso
 
 	/**
 	 * TODO documentation
+	 *
 	 * @param bean
 	 * @param beanName
 	 * @return
@@ -76,6 +82,16 @@ public class KafkaSerializerAndDeserializerProcessor implements BeanPostProcesso
 				}
 			}
 		}
+		if (bean instanceof KafkaTemplate) {
+			KafkaTemplate producerFactoryOwner = (KafkaTemplate) bean;
+			if (KafkaProducerFactoryWithSerializerFactory.class.equals(producerFactoryOwner.getProducerFactory().getClass())) {
+				KafkaProducerFactoryWithSerializerFactory producerFactory =
+						(KafkaProducerFactoryWithSerializerFactory) producerFactoryOwner.getProducerFactory();
+				if (!producerFactory.hasSerializerFactory()) {
+					producerFactory.setSerializerFactory(serializerFactory);
+				}
+			}
+		}
 		return bean;
 	}
 
@@ -83,6 +99,7 @@ public class KafkaSerializerAndDeserializerProcessor implements BeanPostProcesso
 	public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
 		this.beanFactory = beanFactory;
 		this.deserializerFactory = new BeanLookupKafkaDeserializerFactory(beanFactory);
+		this.serializerFactory = new BeanLookupKafkaSerializerFactory(beanFactory);
 	}
 
 	/**
@@ -91,25 +108,47 @@ public class KafkaSerializerAndDeserializerProcessor implements BeanPostProcesso
 	@Override
 	public void afterSingletonsInstantiated() {
 		if (this.beanFactory instanceof ConfigurableListableBeanFactory) {
-			String[] keyDeserializers = ((ConfigurableListableBeanFactory) this.beanFactory).getBeanNamesForType(Deserializer.class);
-			for (String deserializerBean : keyDeserializers) {
-				BeanDefinition definition = ((ConfigurableListableBeanFactory) this.beanFactory).getBeanDefinition(deserializerBean);
-				if (definition.getSource() instanceof StandardMethodMetadata) {
-					registerKeyDeserializer(deserializerBean, ((StandardMethodMetadata) definition.getSource())
-							.getIntrospectedMethod().getAnnotation(KafkaKeyDeserializer.class));
-					registerValueDeserializer(deserializerBean,	((StandardMethodMetadata) definition.getSource())
-							.getIntrospectedMethod().getAnnotation(KafkaValueDeserializer.class));
-				} else if (definition instanceof ScannedGenericBeanDefinition) {
-					registerKeyDeserializer(deserializerBean, ((ScannedGenericBeanDefinition) definition)
-							.getBeanClass().getAnnotation(KafkaKeyDeserializer.class));
-					registerValueDeserializer(deserializerBean, ((ScannedGenericBeanDefinition) definition)
-							.getBeanClass().getAnnotation(KafkaValueDeserializer.class));
-				}
-			}
+			annotatedBeanDeclarations(Deserializer.class).forEach(beanDefinition -> {
+						registerKeyDeserializer(beanDefinition.getName(), beanDefinition.getDeclaration().getAnnotation(KafkaKeyDeserializer.class));
+						registerValueDeserializer(beanDefinition.getName(), beanDefinition.getDeclaration().getAnnotation(KafkaValueDeserializer.class));
+					}
+			);
+			annotatedBeanDeclarations(Serializer.class).forEach(beanDefinition -> {
+						registerKeySerializer(beanDefinition.getName(), beanDefinition.getDeclaration().getAnnotation(KafkaKeySerializer.class));
+						registerValueSerializer(beanDefinition.getName(), beanDefinition.getDeclaration().getAnnotation(KafkaValueSerializer.class));
+					}
+			);
+
+			checkForIncorrectlyAnnotatedBeans();
 		}
-		checkForIncorrectlyAnnotatedBeans();
+
 	}
 
+	private List<BeanDefinitionHolder> annotatedBeanDeclarations(Class<?> type) {
+		List<BeanDefinitionHolder> definitions = Arrays.stream(((ConfigurableListableBeanFactory) this.beanFactory).getBeanNamesForType(type))
+													   .map(name -> new BeanDefinitionHolder(name, ((ConfigurableListableBeanFactory) this.beanFactory).getBeanDefinition(name)))
+													   .collect(Collectors.toList());
+		return Stream.concat(methodAnnotatedBeanDefinitions(definitions).stream(), classAnnotatedBeanDefinitions(definitions).stream())
+					 .collect(Collectors.toList());
+
+	}
+
+
+	private List<BeanDefinitionHolder> methodAnnotatedBeanDefinitions(List<BeanDefinitionHolder> allDefinitions) {
+		return allDefinitions.stream()
+							 .filter(definition -> definition.getDefinition().getSource() instanceof StandardMethodMetadata)
+							 .map(definition -> definition.withDeclaration(((StandardMethodMetadata) definition.getDefinition().getSource()).getIntrospectedMethod()))
+							 .collect(Collectors.toList());
+
+	}
+
+	private List<BeanDefinitionHolder> classAnnotatedBeanDefinitions(List<BeanDefinitionHolder> allDefinitions) {
+		return allDefinitions.stream()
+							 .filter(definition -> definition.getDefinition() instanceof ScannedGenericBeanDefinition)
+							 .map(definition -> definition.withDeclaration(((ScannedGenericBeanDefinition) definition.getDefinition()).getBeanClass()))
+							 .collect(Collectors.toList());
+
+	}
 
 	// TODO draw out commonality with registerValueDeserializer - not easy without annotation inheritance
 	private void registerKeyDeserializer(String deserializerName, KafkaKeyDeserializer deserializerAnnotation) {
@@ -136,21 +175,86 @@ public class KafkaSerializerAndDeserializerProcessor implements BeanPostProcesso
 		}
 	}
 
+	// TODO draw out commonality with registerValueDeserializer - not easy without annotation inheritance
+	private void registerKeySerializer(String serializerName, KafkaKeySerializer serializerAnnotation) {
+		if (serializerAnnotation == null) {
+			return;
+		}
+		if (serializerAnnotation.consumerFactories().length == 0) {
+			this.serializerFactory.registerKeySerializer(serializerName);
+		} else {
+			Arrays.stream(serializerAnnotation.consumerFactories())
+				  .forEach(factory -> this.serializerFactory.registerKeySerializer(factory, serializerName));
+		}
+	}
+
+	private void registerValueSerializer(String serializerName, KafkaValueSerializer serializerAnnotation) {
+		if (serializerAnnotation == null) {
+			return;
+		}
+		if (serializerAnnotation.consumerFactories().length == 0) {
+			this.serializerFactory.registerValueSerializer(serializerName);
+		} else {
+			Arrays.stream(serializerAnnotation.consumerFactories())
+				  .forEach(factory -> this.serializerFactory.registerValueSerializer(factory, serializerName));
+		}
+	}
+
 
 	private void checkForIncorrectlyAnnotatedBeans() {
 		if (this.beanFactory instanceof ConfigurableListableBeanFactory) {
-			String[] keyDeserializers = ((ConfigurableListableBeanFactory) this.beanFactory)
-					.getBeanNamesForAnnotation(KafkaKeyDeserializer.class);
-			String[] valueDeserializers = ((ConfigurableListableBeanFactory) this.beanFactory)
-					.getBeanNamesForAnnotation(KafkaValueDeserializer.class);
-			Set<String> annotatedBeans = Stream.concat(Arrays.stream(keyDeserializers), Arrays.stream(valueDeserializers))
-											   .collect(Collectors.toSet());
+			ConfigurableListableBeanFactory clf = (ConfigurableListableBeanFactory) this.beanFactory;
+			Set<String> annotatedBeans = new HashSet<>();
+			annotatedBeans.addAll(Arrays.asList(clf.getBeanNamesForAnnotation(KafkaKeyDeserializer.class)));
+			annotatedBeans.addAll(Arrays.asList(clf.getBeanNamesForAnnotation(KafkaValueDeserializer.class)));
+			annotatedBeans.addAll(Arrays.asList(clf.getBeanNamesForAnnotation(KafkaKeySerializer.class)));
+			annotatedBeans.addAll(Arrays.asList(clf.getBeanNamesForAnnotation(KafkaValueSerializer.class)));
 			annotatedBeans.removeAll(this.deserializerFactory.getAllRegisteredBeans());
+			annotatedBeans.removeAll(this.serializerFactory.getAllRegisteredBeans());
 			if (!annotatedBeans.isEmpty()) {
-				logger.warn(() -> "Kafka Deserializer or Serializer annotations found on beans that are not of type Deserializer or Serializer" +
-						" - these will be not be used, but will cause the beans to be prototype scope");
+				logger.warn(() -> "Kafka Deserializer or Serializer annotations found on beans named "
+						+ annotatedBeans.stream().collect(Collectors.joining(","))
+						+ " that are not of type Deserializer or Serializer"
+						+ " - these will be not be used, but will cause the beans to be prototype scope");
 			}
 
 		}
 	}
+
+	/**
+	 * Tuple required to hold a few different attributes of a bean definition during processing
+	 */
+	private static class BeanDefinitionHolder {
+		private String name;
+		private BeanDefinition definition;
+		private AnnotatedElement declaration;
+
+		public BeanDefinitionHolder(String name, BeanDefinition definition) {
+			this.name = name;
+			this.definition = definition;
+		}
+
+		public BeanDefinitionHolder(String name, BeanDefinition definition, AnnotatedElement declaration) {
+			this.name = name;
+			this.definition = definition;
+			this.declaration = declaration;
+		}
+
+		public BeanDefinitionHolder withDeclaration(AnnotatedElement declaration) {
+			return new BeanDefinitionHolder(this.name, this.definition, declaration);
+		}
+
+		public String getName() {
+			return name;
+		}
+
+		public BeanDefinition getDefinition() {
+			return definition;
+		}
+
+		public AnnotatedElement getDeclaration() {
+			return declaration;
+		}
+	}
+
 }

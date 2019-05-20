@@ -80,7 +80,7 @@ public class BeanLookupKafkaSerializerFactory<K, V> implements KafkaSerializerFa
 
 	/**
 	 * Register the given bean name as a key {@link Serializer} that is suitable for any producer created by a
-	 * {@link KafkaProducerFactoryWithSerializerFactory} that does not have its own specific
+	 * {@link DefaultKafkaProducerFactory} that does not have its own specific
 	 * {@link Serializer}.
 	 *
 	 * @param serializerBeanName the name of the {@link Serializer} bean
@@ -93,9 +93,9 @@ public class BeanLookupKafkaSerializerFactory<K, V> implements KafkaSerializerFa
 
 	/**
 	 * Register the given bean name as a key {@link Serializer} that is suitable for any producer created by the
-	 * {@link KafkaProducerFactoryWithSerializerFactory} with the given factory bean name.
+	 * {@link DefaultKafkaProducerFactory} with the given factory bean name.
 	 *
-	 * @param producerFactoryBeanName the name of the {@link KafkaProducerFactoryWithSerializerFactory}
+	 * @param producerFactoryBeanName the name of the {@link DefaultKafkaProducerFactory}
 	 * @param serializerBeanName    the name of the {@link Serializer} bean
 	 * @throws NoSuchBeanDefinitionException if either of the provided bean names do not match beans in the current
 	 *                                       application.
@@ -107,7 +107,7 @@ public class BeanLookupKafkaSerializerFactory<K, V> implements KafkaSerializerFa
 
 	/**
 	 * Register the given bean name as a value {@link Serializer} that is suitable for any producer created by a
-	 * {@link KafkaProducerFactoryWithSerializerFactory} that does not have its own specific
+	 * {@link DefaultKafkaProducerFactory} that does not have its own specific
 	 * {@link Serializer}.
 	 *
 	 * @param serializerBeanName the name of the {@link Serializer} bean
@@ -120,9 +120,9 @@ public class BeanLookupKafkaSerializerFactory<K, V> implements KafkaSerializerFa
 
 	/**
 	 * Register the given bean name as a value {@link Serializer} that is suitable for any producer created by the
-	 * {@link KafkaProducerFactoryWithSerializerFactory} with the given factory bean name.
+	 * {@link DefaultKafkaProducerFactory} with the given factory bean name.
 	 *
-	 * @param producerFactoryBeanName the name of the {@link KafkaProducerFactoryWithSerializerFactory}
+	 * @param producerFactoryBeanName the name of the {@link DefaultKafkaProducerFactory}
 	 * @param serializerBeanName    the name of the {@link Serializer} bean
 	 * @throws NoSuchBeanDefinitionException if either of the provided bean names do not match beans in the current
 	 *                                       application.
