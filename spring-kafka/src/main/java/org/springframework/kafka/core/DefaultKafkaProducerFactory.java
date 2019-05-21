@@ -16,9 +16,6 @@
 package org.springframework.kafka.core;
 
 import org.apache.commons.logging.LogFactory;
-import org.apache.kafka.clients.producer.Producer;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.springframework.core.log.LogAccessor;
 import org.springframework.lang.Nullable;

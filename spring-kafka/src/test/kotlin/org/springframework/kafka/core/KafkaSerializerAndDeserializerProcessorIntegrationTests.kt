@@ -15,9 +15,7 @@
  */
 package org.springframework.kafka.core
 
-import org.apache.kafka.common.serialization.Deserializer
-import org.apache.kafka.common.serialization.IntegerDeserializer
-import org.apache.kafka.common.serialization.StringDeserializer
+import org.apache.kafka.common.serialization.*
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.BeanFactory
@@ -25,9 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.Configuration
-import org.springframework.kafka.annotation.EnableKafka
-import org.springframework.kafka.annotation.KafkaKeyDeserializer
-import org.springframework.kafka.annotation.KafkaValueDeserializer
+import org.springframework.kafka.annotation.*
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory
 import org.springframework.stereotype.Component
 import org.springframework.test.annotation.DirtiesContext
@@ -50,6 +46,14 @@ class KafkaSerializerAndDeserializerProcessorIntegrationTests {
     @Autowired
     private lateinit var providedDeserializerFactory: KafkaDeserializerFactory<String, String>
 
+    @Resource(name = "producerFactory")
+    private lateinit var producerFactory: KafkaProducerFactoryWithSerializerFactory<String, String>
+
+    @Resource(name = "producerFactoryWithProvidedSerializerFactory")
+    private lateinit var producerFactoryWithProvidedSerializerFactory: KafkaProducerFactoryWithSerializerFactory<String, String>
+
+    @Autowired
+    private lateinit var providedSerializerFactory: KafkaSerializerFactory<String, String>
 
     @Test
     fun `ensure deserializer factory is injected into consumer factory by default`() {
@@ -65,14 +69,14 @@ class KafkaSerializerAndDeserializerProcessorIntegrationTests {
     }
 
     @Test
-    fun `ensure annotated deserializer without a named consumer is added to factory as default`() {
+    fun `ensure annotated deserializer without a named consumer factory is added to deserializer factory as default`() {
         assertThat(this.consumerFactory.deserializerFactory.getValueDeserializer("consumerFactory2")).isInstanceOf(ComponentDeserializer::class.java)
         assertThat(this.consumerFactory.deserializerFactory.getValueDeserializer("consumerFactory3")).isInstanceOf(ComponentDeserializer::class.java)
 
     }
 
     @Test
-    fun `ensure annotated deserializer with a named consumer is added to factory for that consumer`() {
+    fun `ensure annotated deserializer with a named consumer factory is added to deserializer factory for that consumer`() {
         assertThat(this.consumerFactory.deserializerFactory
                 .getKeyDeserializer("consumerFactory"))
                 .isInstanceOf(StringDeserializer::class.java)
@@ -94,6 +98,49 @@ class KafkaSerializerAndDeserializerProcessorIntegrationTests {
                 .isNotSameAs(this.consumerFactory.deserializerFactory.getKeyDeserializer("consumerFactory"))
     }
 
+    @Test
+    fun `ensure serializer factory is injected into producer factory by default`() {
+        assertThat(this.producerFactory.hasSerializerFactory()).isTrue()
+        assertThat(this.producerFactory.serializerFactory)
+                .isInstanceOf(BeanLookupKafkaSerializerFactory::class.java)
+    }
+
+    @Test
+    fun `ensure explicitly provided serializer factory is not replaced`() {
+        assertThat(this.producerFactoryWithProvidedSerializerFactory.hasSerializerFactory()).isTrue()
+        assertThat(this.producerFactoryWithProvidedSerializerFactory.serializerFactory).isSameAs(providedSerializerFactory)
+    }
+
+    @Test
+    fun `ensure annotated serializer without a named producer factory is added to serializer factory as default`() {
+        assertThat(this.producerFactory.serializerFactory.getValueSerializer("producerFactory2")).isInstanceOf(ComponentSerializer::class.java)
+        assertThat(this.producerFactory.serializerFactory.getValueSerializer("producerFactory3")).isInstanceOf(ComponentSerializer::class.java)
+
+    }
+
+    @Test
+    fun `ensure annotated serializer with a named producer factory is added to serializer factory for that consumer`() {
+        assertThat(this.producerFactory.serializerFactory
+                .getKeySerializer("producerFactory"))
+                .isInstanceOf(StringSerializer::class.java)
+
+    }
+
+    @Test
+    fun `ensure bean that is key and value serializer is registered as both`() {
+        assertThat(this.producerFactory.serializerFactory
+                .getKeySerializer("producerFactory4"))
+                .isEqualTo(this.producerFactory.serializerFactory
+                        .getValueSerializer("producerFactory4"))
+                .isInstanceOf(KeyAndValueSerializer::class.java)
+    }
+
+    @Test
+    fun `ensure serializers retrieved from the factory are prototypes`() {
+        assertThat(this.producerFactory.serializerFactory.getKeySerializer("producerFactory"))
+                .isNotSameAs(this.producerFactory.serializerFactory.getKeySerializer("producerFactory"))
+    }
+
     @Configuration
     @ComponentScan("org.springframework.kafka.core")
     @EnableKafka
@@ -101,6 +148,8 @@ class KafkaSerializerAndDeserializerProcessorIntegrationTests {
 
         @Autowired
         private lateinit var beanFactory: BeanFactory
+
+        // consumer config
 
         @Bean
         fun consumerFactory(): KafkaConsumerFactoryWithDeserializerFactory<String, String>
@@ -161,6 +210,54 @@ class KafkaSerializerAndDeserializerProcessorIntegrationTests {
         @KafkaValueDeserializer(consumerFactories = ["consumerFactory4"])
         fun keyAndValueDeserializer(): Deserializer<String> = KeyAndValueDeserializer("test")
 
+        // producer config
+
+        @Bean
+        fun producerFactory(): KafkaProducerFactoryWithSerializerFactory<String, String>
+                = KafkaProducerFactoryWithSerializerFactory(HashMap<String, Any>())
+
+        @Bean
+        fun producerFactory2(): KafkaProducerFactoryWithSerializerFactory<String, String>
+                = KafkaProducerFactoryWithSerializerFactory(HashMap<String, Any>())
+
+        @Bean
+        fun producerFactory3(): KafkaProducerFactoryWithSerializerFactory<String, String>
+                = KafkaProducerFactoryWithSerializerFactory(HashMap<String, Any>())
+
+        @Bean
+        fun producerFactory4(): KafkaProducerFactoryWithSerializerFactory<String, String>
+                = KafkaProducerFactoryWithSerializerFactory(HashMap<String, Any>())
+
+        @Bean
+        fun serializerFactory(): KafkaSerializerFactory<String, String>
+                = BeanLookupKafkaSerializerFactory<String, String>(this.beanFactory)
+
+        @Bean
+        fun producerFactoryWithProvidedSerializerFactory(): KafkaProducerFactoryWithSerializerFactory<String, String> {
+            val factory: KafkaProducerFactoryWithSerializerFactory<String, String>
+                    = KafkaProducerFactoryWithSerializerFactory(HashMap<String, Any>())
+            factory.serializerFactory = serializerFactory()
+            return factory
+        }
+
+        @Bean
+        fun kafkaTemplate1(): KafkaTemplate<String, String> = KafkaTemplate(producerFactory())
+
+        @Bean
+        fun kafkaTemplate2(): KafkaTemplate<String, String> = KafkaTemplate(producerFactoryWithProvidedSerializerFactory())
+
+        @Bean
+        fun kafkaTemplate3(): KafkaTemplate<String, String> = KafkaTemplate(producerFactory4())
+
+        @Bean
+        @KafkaKeySerializer(producerFactories = ["producerFactory"])
+        fun configurationSerializer(): Serializer<String> = StringSerializer()
+
+
+        @Bean
+        @KafkaKeySerializer(producerFactories = ["producerFactory4"])
+        @KafkaValueSerializer(producerFactories = ["producerFactory4"])
+        fun keyAndValueSerializer(): Serializer<String> = KeyAndValueSerializer("test")
     }
 
     @Component
@@ -168,5 +265,12 @@ class KafkaSerializerAndDeserializerProcessorIntegrationTests {
     class ComponentDeserializer : IntegerDeserializer()
 
 
+    @Component
+    @KafkaValueSerializer
+    class ComponentSerializer : IntegerSerializer()
+
     data class KeyAndValueDeserializer(val field: String) : StringDeserializer()
+
+    data class KeyAndValueSerializer(val field: String) : StringSerializer()
+
 }

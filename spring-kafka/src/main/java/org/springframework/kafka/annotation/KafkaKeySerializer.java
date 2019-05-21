@@ -45,9 +45,9 @@ public @interface KafkaKeySerializer {
 	 * Bean names for specific ProducerFactories for which the annotated Deserializer is applicable. If omitted then
 	 * the Serializer will apply to any ProducerFactories that do not have a specific value serializer.
 	 *
-	 * @return the array of ConsumerFactory bean names.
+	 * @return the array of ProducerFactory bean names.
 	 */
-	String[] consumerFactories() default {};
+	String[] producerFactories() default {};
 
 
 }

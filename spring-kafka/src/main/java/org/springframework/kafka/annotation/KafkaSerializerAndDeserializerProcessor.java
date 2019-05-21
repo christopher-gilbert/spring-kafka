@@ -45,6 +45,8 @@ import java.util.stream.Stream;
  * {@link org.springframework.kafka.core.KafkaDeserializerFactory} that is populated based on
  * {@link KafkaKeyDeserializer} or {@link KafkaValueDeserializer} annotated beans of type {@link Deserializer}.
  *
+ * Also, carry out the same processing for {@link KafkaProducerFactoryWithSerializerFactory}
+ *
  * @author Chris Gilbert
  */
 public class KafkaSerializerAndDeserializerProcessor implements BeanPostProcessor, BeanFactoryAware, SmartInitializingSingleton {
@@ -63,10 +65,11 @@ public class KafkaSerializerAndDeserializerProcessor implements BeanPostProcesso
 	}
 
 	/**
-	 * TODO documentation
+	 * Inject consumer or producer factory beans with deserializer or serializer factories
+	 * if they have not already had factories explicitly set.
 	 *
-	 * @param bean
-	 * @param beanName
+	 * @param bean the bean that owns the consumer or producer factory
+	 * @param beanName the name of the above bean
 	 * @return
 	 * @throws BeansException
 	 */
@@ -103,7 +106,9 @@ public class KafkaSerializerAndDeserializerProcessor implements BeanPostProcesso
 	}
 
 	/**
-	 * TODO documentation and de-densify code
+	 * Located annotated key and value serializers and deserializers, and register them with the appropriate
+	 * factories. Also check for any annotations that have been applied to beans of the wrong type and warn
+	 * as they would inherit prototype scope from the incorrectly applied annotation.
 	 */
 	@Override
 	public void afterSingletonsInstantiated() {
@@ -150,7 +155,6 @@ public class KafkaSerializerAndDeserializerProcessor implements BeanPostProcesso
 
 	}
 
-	// TODO draw out commonality with registerValueDeserializer - not easy without annotation inheritance
 	private void registerKeyDeserializer(String deserializerName, KafkaKeyDeserializer deserializerAnnotation) {
 		if (deserializerAnnotation == null) {
 			return;
@@ -175,15 +179,14 @@ public class KafkaSerializerAndDeserializerProcessor implements BeanPostProcesso
 		}
 	}
 
-	// TODO draw out commonality with registerValueDeserializer - not easy without annotation inheritance
 	private void registerKeySerializer(String serializerName, KafkaKeySerializer serializerAnnotation) {
 		if (serializerAnnotation == null) {
 			return;
 		}
-		if (serializerAnnotation.consumerFactories().length == 0) {
+		if (serializerAnnotation.producerFactories().length == 0) {
 			this.serializerFactory.registerKeySerializer(serializerName);
 		} else {
-			Arrays.stream(serializerAnnotation.consumerFactories())
+			Arrays.stream(serializerAnnotation.producerFactories())
 				  .forEach(factory -> this.serializerFactory.registerKeySerializer(factory, serializerName));
 		}
 	}
@@ -192,10 +195,10 @@ public class KafkaSerializerAndDeserializerProcessor implements BeanPostProcesso
 		if (serializerAnnotation == null) {
 			return;
 		}
-		if (serializerAnnotation.consumerFactories().length == 0) {
+		if (serializerAnnotation.producerFactories().length == 0) {
 			this.serializerFactory.registerValueSerializer(serializerName);
 		} else {
-			Arrays.stream(serializerAnnotation.consumerFactories())
+			Arrays.stream(serializerAnnotation.producerFactories())
 				  .forEach(factory -> this.serializerFactory.registerValueSerializer(factory, serializerName));
 		}
 	}
