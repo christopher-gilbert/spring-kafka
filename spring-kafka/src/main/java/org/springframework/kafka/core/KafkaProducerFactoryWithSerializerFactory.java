@@ -38,7 +38,11 @@ import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
 import java.time.Duration;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Future;
@@ -51,7 +55,7 @@ import java.util.function.Consumer;
  * The {@link ProducerFactory} implementation for a {@code singleton} shared {@link Producer} instance.
  * <p>
  * This implementation will return the same {@link Producer} instance (if transactions are
- * not enabled) for the provided {@link Map} {@code configs} and optional {@link KafkaSerializerFactory}
+ * not enabled) for the provided {@link java.util.Map} {@code configs} and optional {@link KafkaSerializerFactory}
  * implementations on each {@link #createProducer()} invocation.
  * <p>
  * The {@link Producer} is wrapped and the underlying {@link KafkaProducer} instance is
@@ -371,7 +375,7 @@ public class KafkaProducerFactoryWithSerializerFactory<K, V> implements Producer
 		Producer<K, V> newProducer;
 		Map<String, Object> newProducerConfigs = new HashMap<>(this.configs);
 		newProducerConfigs.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG, this.transactionIdPrefix + suffix);
-		newProducer = new KafkaProducer(newProducerConfigs, this.serializerFactory.getKeySerializer(this.name), this.serializerFactory.getValueSerializer(this.name));
+		newProducer = new KafkaProducer<>(newProducerConfigs, this.serializerFactory.getKeySerializer(this.name), this.serializerFactory.getValueSerializer(this.name));
 		newProducer.initTransactions();
 		return new CloseSafeProducer<>(newProducer, this.cache, remover,
 				(String) newProducerConfigs.get(ProducerConfig.TRANSACTIONAL_ID_CONFIG));

@@ -30,13 +30,10 @@ import java.util.Properties;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static org.apache.kafka.clients.consumer.ConsumerConfig.CLIENT_ID_CONFIG;
-import static org.apache.kafka.clients.consumer.ConsumerConfig.GROUP_ID_CONFIG;
-
 /**
  * KafkaConsumerFactory that makes use of a {@link KafkaDeserializerFactory} to construct key and value
  * deserializers for each Consumer that is constructed.
- *
+ * <p>
  * Users may provide their own implementation of {@link KafkaDeserializerFactory}, or alternatively an
  * {@link BeanLookupKafkaDeserializerFactory} is implicitly created and populated with any
  * Deserializers annotated as {@link org.springframework.kafka.annotation.KafkaKeyDeserializer} or
@@ -69,8 +66,7 @@ public class KafkaConsumerFactoryWithDeserializerFactory<K, V> implements Consum
 	 * @param configs             the configuration.
 	 * @param deserializerFactory the factory for providing key and value deserializer instances
 	 */
-	public KafkaConsumerFactoryWithDeserializerFactory(Map<String, Object> configs,
-													   @Nullable  KafkaDeserializerFactory<K, V> deserializerFactory) {
+	public KafkaConsumerFactoryWithDeserializerFactory(Map<String, Object> configs, @Nullable KafkaDeserializerFactory<K, V> deserializerFactory) {
 		this.configs = new HashMap<>(configs);
 		this.deserializerFactory = deserializerFactory;
 	}
@@ -146,9 +142,10 @@ public class KafkaConsumerFactoryWithDeserializerFactory<K, V> implements Consum
 	 * @param clientIdSuffix optional suffix to append to existing or overridden clientId
 	 * @return final client ID derived according to the {@link ConsumerFactory#createConsumer(String, String, String)} rules
 	 */
-	private @Nullable String deriveClientId(@Nullable String clientIdPrefix,
-								  @Nullable final String clientIdSuffix) {
-		String clientId = this.configs.get(CLIENT_ID_CONFIG) != null ? this.configs.get(CLIENT_ID_CONFIG).toString() : null;
+	private @Nullable
+	String deriveClientId(@Nullable String clientIdPrefix,
+						  @Nullable final String clientIdSuffix) {
+		String clientId = this.configs.get(ConsumerConfig.CLIENT_ID_CONFIG) != null ? this.configs.get(ConsumerConfig.CLIENT_ID_CONFIG).toString() : null;
 		clientId = StringUtils.hasText(clientIdPrefix) ? clientIdPrefix : clientId;
 		if (clientId != null) {
 			clientId += StringUtils.hasText(clientIdSuffix) ? clientIdSuffix : "";
@@ -161,11 +158,11 @@ public class KafkaConsumerFactoryWithDeserializerFactory<K, V> implements Consum
 	}
 
 	private boolean clientIdIsOverridden(@Nullable String clientId) {
-		return clientId != null && !clientId.equals(this.configs.get(CLIENT_ID_CONFIG));
+		return clientId != null && !clientId.equals(this.configs.get(ConsumerConfig.CLIENT_ID_CONFIG));
 	}
 
 	private boolean groupIdIsOverridden(@Nullable String groupId) {
-		return groupId != null && !groupId.equals(this.configs.get(GROUP_ID_CONFIG));
+		return groupId != null && !groupId.equals(this.configs.get(ConsumerConfig.GROUP_ID_CONFIG));
 	}
 
 
@@ -178,12 +175,12 @@ public class KafkaConsumerFactoryWithDeserializerFactory<K, V> implements Consum
 											 .collect(Collectors.toMap(Function.identity(), properties::getProperty)));
 		}
 		if (groupIdIsOverridden(groupId)) {
-			modifiedConfigs.put(GROUP_ID_CONFIG, groupId);
+			modifiedConfigs.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
 		}
 
 
 		if (clientIdIsOverridden(clientId)) {
-			modifiedConfigs.put(CLIENT_ID_CONFIG, clientId);
+			modifiedConfigs.put(ConsumerConfig.CLIENT_ID_CONFIG, clientId);
 		}
 		return modifiedConfigs;
 	}

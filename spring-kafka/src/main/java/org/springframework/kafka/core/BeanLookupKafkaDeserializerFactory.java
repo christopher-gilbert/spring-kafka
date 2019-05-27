@@ -57,8 +57,9 @@ public class BeanLookupKafkaDeserializerFactory<K, V> implements KafkaDeserializ
 	 * @return the appropriate {@link Deserializer}, or null.
 	 */
 	@Override
+	@SuppressWarnings("unchecked")
 	public Deserializer<K> getKeyDeserializer(String consumerFactoryBeanName) {
-		return keyDeserializerFactory.getOrDefault(consumerFactoryBeanName);
+		return keyDeserializerFactory.getOrDefault(consumerFactoryBeanName, (Class<Deserializer<K>>)(Class<?>)Deserializer.class);
 	}
 
 	/**
@@ -74,8 +75,9 @@ public class BeanLookupKafkaDeserializerFactory<K, V> implements KafkaDeserializ
 	 * @return the appropriate {@link Deserializer}, or null.
 	 */
 	@Override
+	@SuppressWarnings("unchecked")
 	public Deserializer<V> getValueDeserializer(String consumerFactoryBeanName) {
-		return valueDeserializerFactory.getOrDefault(consumerFactoryBeanName);
+		return valueDeserializerFactory.getOrDefault(consumerFactoryBeanName, (Class<Deserializer<V>>)(Class<?>)Deserializer.class);
 	}
 
 	/**

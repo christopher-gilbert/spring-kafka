@@ -29,8 +29,8 @@ import java.lang.annotation.Target;
  * {@link org.springframework.stereotype.Component} annotated type) which signifies that the bean is to be used as a
  * Serializer for {@link org.apache.kafka.clients.producer.ProducerRecord} keys sent by a
  * {@link org.apache.kafka.clients.producer.KafkaProducer} from a
- * {@link org.springframework.kafka.core.FactorySuppliedSerializerKafkaProducerFactory} created with a
- * {@link BeanLookupKafkaSerializerFactory}.
+ * {@link org.springframework.kafka.core.KafkaProducerFactoryWithSerializerFactory} created with a
+ * {@link org.springframework.kafka.core.BeanLookupKafkaSerializerFactory}.
  *
  * eg //TODO example config code
  *

@@ -1,6 +1,22 @@
+/*
+ * Copyright 2019 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.springframework.kafka.core;
 
 import org.springframework.beans.factory.BeanFactory;
+import org.springframework.beans.factory.BeanNotOfRequiredTypeException;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 
@@ -11,7 +27,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Factory that allows beans to be looked up using the name of another bean.
- * @param <T> the type of the mapped bean
+ *
+ * @param <T> the type of the mapped bean.
+ * @author Chris Gilbert
  */
 public class MappedBeanFactory<T> {
 
@@ -33,12 +51,14 @@ public class MappedBeanFactory<T> {
 	 * If neither of the above is the case then null will be returned.
 	 *
 	 * @param keyBeanName the name of the bean to be used for the lookup.
+	 * @param requiredType the expected type of the bean.
 	 * @return the appropriate bean, or null.
+	 * @throws BeanNotOfRequiredTypeException if the bean is not of the required type
 	 */
-	public T getOrDefault(String keyBeanName) {
-		String mappedBeanName = beanNameMappings.getOrDefault(keyBeanName,
-				beanNameMappings.get(DEFAULT_KEY));
-		return (T)beanFactory.getBean(mappedBeanName);
+	public T getOrDefault(String keyBeanName, Class<T> requiredType) {
+		String mappedBeanName = this.beanNameMappings.getOrDefault(keyBeanName,
+				this.beanNameMappings.get(DEFAULT_KEY));
+		return this.beanFactory.getBean(mappedBeanName, requiredType);
 	}
 
 
@@ -57,15 +77,15 @@ public class MappedBeanFactory<T> {
 	/**
 	 * Register the given bean name to be used if a lookup is performed for the given key.
 	 *
-	 * @param keyBeanName the name of the bean used for a lookup.
-	 * @param mappedBeanName    the name of the bean
+	 * @param keyBeanName    the name of the bean used for a lookup.
+	 * @param mappedBeanName the name of the bean
 	 * @throws NoSuchBeanDefinitionException if either of the provided bean names do not match beans in the current
 	 *                                       application.
 	 * @throws IllegalStateException         if there is already a bean registered for the given key.
 	 */
 	public void addBeanMapping(String keyBeanName, String mappedBeanName) {
 		validateBeans(keyBeanName, mappedBeanName);
-		beanNameMappings.put(keyBeanName, mappedBeanName);
+		this.beanNameMappings.put(keyBeanName, mappedBeanName);
 	}
 
 	/**
@@ -74,25 +94,25 @@ public class MappedBeanFactory<T> {
 	 * @return the set of bean names
 	 */
 	public Set<String> getAllMappedBeanNames() {
-		return new HashSet(beanNameMappings.values());
+		return new HashSet<>(this.beanNameMappings.values());
 	}
 
 	/**
 	 * Ensure that there is not already a bean for the same key, and also ensure that the BeanFactory contains the
 	 * expected beans.
 	 *
-	 * @param keyBeanName the name of the bean used for a lookup
+	 * @param keyBeanName    the name of the bean used for a lookup
 	 * @param mappedBeanName the bean name
 	 */
 	private void validateBeans(String keyBeanName, String mappedBeanName) {
-		if (beanNameMappings.containsKey(keyBeanName)) {
+		if (this.beanNameMappings.containsKey(keyBeanName)) {
 			throw new IllegalStateException(String.format("Attempt to map more than one bean to %s", keyBeanName));
 		}
-		if (beanFactory instanceof ConfigurableListableBeanFactory) {
-			((ConfigurableListableBeanFactory) beanFactory).getBeanDefinition(mappedBeanName);
+		if (this.beanFactory instanceof ConfigurableListableBeanFactory) {
+			((ConfigurableListableBeanFactory) this.beanFactory).getBeanDefinition(mappedBeanName);
 
 			if (!DEFAULT_KEY.equals(keyBeanName)) {
-				((ConfigurableListableBeanFactory) beanFactory).getBeanDefinition(keyBeanName);
+				((ConfigurableListableBeanFactory) this.beanFactory).getBeanDefinition(keyBeanName);
 			}
 		}
 	}

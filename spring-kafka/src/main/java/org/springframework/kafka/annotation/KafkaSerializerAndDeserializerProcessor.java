@@ -44,23 +44,23 @@ import java.util.stream.Stream;
  * {@link org.springframework.kafka.config.KafkaListenerContainerFactory}s with a new instance of
  * {@link org.springframework.kafka.core.KafkaDeserializerFactory} that is populated based on
  * {@link KafkaKeyDeserializer} or {@link KafkaValueDeserializer} annotated beans of type {@link Deserializer}.
- *
+ * <p>
  * Also, carry out the same processing for {@link KafkaProducerFactoryWithSerializerFactory}
  *
  * @author Chris Gilbert
  */
 public class KafkaSerializerAndDeserializerProcessor implements BeanPostProcessor, BeanFactoryAware, SmartInitializingSingleton {
 
-	private BeanLookupKafkaDeserializerFactory deserializerFactory;
+	private BeanLookupKafkaDeserializerFactory<?, ?> deserializerFactory;
 
-	private BeanLookupKafkaSerializerFactory serializerFactory;
+	private BeanLookupKafkaSerializerFactory<?, ?> serializerFactory;
 
 	private BeanFactory beanFactory;
 
 	private final LogAccessor logger = new LogAccessor(LogFactory.getLog(getClass()));
 
 	@Override
-	public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
+	public Object postProcessBeforeInitialization(Object bean, String beanName) {
 		return bean;
 	}
 
@@ -68,13 +68,13 @@ public class KafkaSerializerAndDeserializerProcessor implements BeanPostProcesso
 	 * Inject consumer or producer factory beans with deserializer or serializer factories
 	 * if they have not already had factories explicitly set.
 	 *
-	 * @param bean the bean that owns the consumer or producer factory
+	 * @param bean     the bean that owns the consumer or producer factory
 	 * @param beanName the name of the above bean
-	 * @return
-	 * @throws BeansException
+	 * @return The bean
 	 */
 	@Override
-	public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+	@SuppressWarnings("unchecked")
+	public Object postProcessAfterInitialization(Object bean, String beanName) {
 		if (bean instanceof AbstractKafkaListenerContainerFactory) {
 			AbstractKafkaListenerContainerFactory consumerFactoryOwner = (AbstractKafkaListenerContainerFactory) bean;
 			if (consumerFactoryOwner.getConsumerFactory() instanceof KafkaConsumerFactoryWithDeserializerFactory) {
@@ -216,7 +216,7 @@ public class KafkaSerializerAndDeserializerProcessor implements BeanPostProcesso
 			annotatedBeans.removeAll(this.serializerFactory.getAllRegisteredBeans());
 			if (!annotatedBeans.isEmpty()) {
 				logger.warn(() -> "Kafka Deserializer or Serializer annotations found on beans named "
-						+ annotatedBeans.stream().collect(Collectors.joining(","))
+						+ String.join(",", annotatedBeans)
 						+ " that are not of type Deserializer or Serializer"
 						+ " - these will be not be used, but will cause the beans to be prototype scope");
 			}
@@ -232,30 +232,30 @@ public class KafkaSerializerAndDeserializerProcessor implements BeanPostProcesso
 		private BeanDefinition definition;
 		private AnnotatedElement declaration;
 
-		public BeanDefinitionHolder(String name, BeanDefinition definition) {
+		BeanDefinitionHolder(String name, BeanDefinition definition) {
 			this.name = name;
 			this.definition = definition;
 		}
 
-		public BeanDefinitionHolder(String name, BeanDefinition definition, AnnotatedElement declaration) {
+		BeanDefinitionHolder(String name, BeanDefinition definition, AnnotatedElement declaration) {
 			this.name = name;
 			this.definition = definition;
 			this.declaration = declaration;
 		}
 
-		public BeanDefinitionHolder withDeclaration(AnnotatedElement declaration) {
+		BeanDefinitionHolder withDeclaration(AnnotatedElement declaration) {
 			return new BeanDefinitionHolder(this.name, this.definition, declaration);
 		}
 
-		public String getName() {
+		String getName() {
 			return name;
 		}
 
-		public BeanDefinition getDefinition() {
+		BeanDefinition getDefinition() {
 			return definition;
 		}
 
-		public AnnotatedElement getDeclaration() {
+		AnnotatedElement getDeclaration() {
 			return declaration;
 		}
 	}

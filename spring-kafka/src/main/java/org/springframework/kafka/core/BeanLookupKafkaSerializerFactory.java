@@ -57,8 +57,9 @@ public class BeanLookupKafkaSerializerFactory<K, V> implements KafkaSerializerFa
 	 * @return the appropriate {@link Serializer}, or null.
 	 */
 	@Override
+	@SuppressWarnings("unchecked")
 	public Serializer<K> getKeySerializer(String consumerFactoryBeanName) {
-		return keySerializerFactory.getOrDefault(consumerFactoryBeanName);
+		return keySerializerFactory.getOrDefault(consumerFactoryBeanName, (Class<Serializer<K>>) (Class<?>)Serializer.class);
 	}
 
 	/**
@@ -74,8 +75,9 @@ public class BeanLookupKafkaSerializerFactory<K, V> implements KafkaSerializerFa
 	 * @return the appropriate {@link Serializer}, or null.
 	 */
 	@Override
+	@SuppressWarnings("unchecked")
 	public Serializer<V> getValueSerializer(String consumerFactoryBeanName) {
-		return valueSerializerFactory.getOrDefault(consumerFactoryBeanName);
+		return valueSerializerFactory.getOrDefault(consumerFactoryBeanName, (Class<Serializer<V>>) (Class<?>)Serializer.class);
 	}
 
 	/**

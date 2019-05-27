@@ -68,7 +68,7 @@ public class DefaultKafkaConsumerFactory<K, V> implements ConsumerFactory<K, V> 
 									   @Nullable Deserializer<K> keyDeserializer,
 									   @Nullable Deserializer<V> valueDeserializer) {
 		this.deserializerFactory = new SingleInstanceKafkaDeserializerFactory(keyDeserializer, valueDeserializer);
-		this.delegate = new KafkaConsumerFactoryWithDeserializerFactory(configs, this.deserializerFactory);
+		this.delegate = new KafkaConsumerFactoryWithDeserializerFactory<>(configs, this.deserializerFactory);
 	}
 
 	public void setKeyDeserializer(@Nullable Deserializer<K> keyDeserializer) {
@@ -150,7 +150,7 @@ public class DefaultKafkaConsumerFactory<K, V> implements ConsumerFactory<K, V> 
 
 		private Deserializer<V> valueDeserializer;
 
-		public SingleInstanceKafkaDeserializerFactory(Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer) {
+		SingleInstanceKafkaDeserializerFactory(@Nullable Deserializer<K> keyDeserializer, @Nullable Deserializer<V> valueDeserializer) {
 			this.keyDeserializer = keyDeserializer;
 			this.valueDeserializer = valueDeserializer;
 		}
@@ -165,11 +165,11 @@ public class DefaultKafkaConsumerFactory<K, V> implements ConsumerFactory<K, V> 
 			return valueDeserializer;
 		}
 
-		public void setKeyDeserializer(Deserializer<K> keyDeserializer) {
+		void setKeyDeserializer(@Nullable Deserializer<K> keyDeserializer) {
 			this.keyDeserializer = keyDeserializer;
 		}
 
-		public void setValueDeserializer(Deserializer<V> valueDeserializer) {
+		void setValueDeserializer(@Nullable Deserializer<V> valueDeserializer) {
 			this.valueDeserializer = valueDeserializer;
 		}
 

@@ -15,9 +15,7 @@
  */
 package org.springframework.kafka.core;
 
-import org.apache.commons.logging.LogFactory;
 import org.apache.kafka.common.serialization.Serializer;
-import org.springframework.core.log.LogAccessor;
 import org.springframework.lang.Nullable;
 
 import java.util.Map;
@@ -50,9 +48,6 @@ import java.util.Map;
  */
 public class DefaultKafkaProducerFactory<K, V> extends KafkaProducerFactoryWithSerializerFactory<K, V> {
 
-	private static final LogAccessor LOGGER = new LogAccessor(LogFactory.getLog(KafkaProducerFactoryWithSerializerFactory.class));
-
-
 	/**
 	 * Construct a factory with the provided configuration.
 	 *
@@ -72,20 +67,20 @@ public class DefaultKafkaProducerFactory<K, V> extends KafkaProducerFactoryWithS
 	public DefaultKafkaProducerFactory(Map<String, Object> configs,
 									   @Nullable Serializer<K> keySerializer,
 									   @Nullable Serializer<V> valueSerializer) {
-		super(configs, new SingleInstanceKafkaSerializerFactory(keySerializer, valueSerializer));
+		super(configs, new SingleInstanceKafkaSerializerFactory<>(keySerializer, valueSerializer));
 	}
 
 
 	public void setKeySerializer(@Nullable Serializer<K> keySerializer) {
 		if (super.getSerializerFactory() instanceof SingleInstanceKafkaSerializerFactory) {
-			((SingleInstanceKafkaSerializerFactory) super.getSerializerFactory()).setKeySerializer(keySerializer);
+			((SingleInstanceKafkaSerializerFactory<K, V>) super.getSerializerFactory()).setKeySerializer(keySerializer);
 		}
 		//TODO else warn?
 	}
 
 	public void setValueSerializer(@Nullable Serializer<V> valueSerializer) {
 		if (super.getSerializerFactory() instanceof SingleInstanceKafkaSerializerFactory) {
-			((SingleInstanceKafkaSerializerFactory) super.getSerializerFactory()).setValueSerializer(valueSerializer);
+			((SingleInstanceKafkaSerializerFactory<K, V>) super.getSerializerFactory()).setValueSerializer(valueSerializer);
 		}
 		//TODO else warn?
 	}
@@ -97,32 +92,32 @@ public class DefaultKafkaProducerFactory<K, V> extends KafkaProducerFactoryWithS
 	 * mutable in order to honour the public mutators in {@link DefaultKafkaProducerFactory}, and are not expected
 	 * to be modified after initial creation.
 	 */
-	private static class SingleInstanceKafkaSerializerFactory implements KafkaSerializerFactory {
+	private static class SingleInstanceKafkaSerializerFactory<K, V> implements KafkaSerializerFactory<K, V> {
 
-		private Serializer keySerializer;
+		private Serializer<K> keySerializer;
 
-		private Serializer valueSerializer;
+		private Serializer<V> valueSerializer;
 
-		public SingleInstanceKafkaSerializerFactory(Serializer keySerializer, Serializer valueSerializer) {
+		SingleInstanceKafkaSerializerFactory(@Nullable Serializer<K> keySerializer, @Nullable Serializer<V> valueSerializer) {
 			this.keySerializer = keySerializer;
 			this.valueSerializer = valueSerializer;
 		}
 
 		@Override
-		public Serializer getKeySerializer() {
+		public Serializer<K> getKeySerializer() {
 			return keySerializer;
 		}
 
 		@Override
-		public Serializer getValueSerializer() {
+		public Serializer<V> getValueSerializer() {
 			return valueSerializer;
 		}
 
-		public void setKeySerializer(Serializer keySerializer) {
+		void setKeySerializer(@Nullable  Serializer<K> keySerializer) {
 			this.keySerializer = keySerializer;
 		}
 
-		public void setValueSerializer(Serializer valueSerializer) {
+		void setValueSerializer(@Nullable Serializer<V> valueSerializer) {
 			this.valueSerializer = valueSerializer;
 		}
 
