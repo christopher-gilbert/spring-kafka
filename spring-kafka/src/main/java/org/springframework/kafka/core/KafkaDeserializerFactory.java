@@ -17,6 +17,7 @@ package org.springframework.kafka.core;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.common.serialization.Deserializer;
+import org.springframework.lang.Nullable;
 
 /**
  * The strategy to produce {@link org.apache.kafka.common.serialization.Deserializer} instances for {@link Consumer}s
@@ -33,18 +34,7 @@ public interface KafkaDeserializerFactory<K, V> {
 	 *
 	 * @return the Deserializer (null in the default implementation)
 	 */
-	default Deserializer<K> getKeyDeserializer() {
-		return null;
-	}
-
-	/**
-	 * Provide a {@link Deserializer} for {@link org.apache.kafka.clients.consumer.ConsumerRecord} keys, designed for a
-	 * specific {@link ConsumerFactory}.
-	 *
-	 * @param consumerFactoryBeanName the bean name of the consumer factory that is requesting the Deserializer
-	 * @return the Deserializer (null in the default implementation)
-	 */
-	default Deserializer<K> getKeyDeserializer(String consumerFactoryBeanName) {
+	default @Nullable Deserializer<K> getKeyDeserializer() {
 		return null;
 	}
 
@@ -53,18 +43,7 @@ public interface KafkaDeserializerFactory<K, V> {
 	 *
 	 * @return the Deserializer (null in the default implementation)
 	 */
-	default Deserializer<V> getValueDeserializer() {
-		return null;
-	}
-
-	/**
-	 * Provide a {@link Deserializer} for {@link org.apache.kafka.clients.consumer.ConsumerRecord} values, designed for
-	 * a specific {@link ConsumerFactory}.
-	 *
-	 * @param consumerFactoryBeanName the bean name of the consumer factory that is requesting the Deserializer
-	 * @return the Deserializer (null in the default implementation)
-	 */
-	default Deserializer<V> getValueDeserializer(String consumerFactoryBeanName) {
+	default @Nullable Deserializer<V> getValueDeserializer() {
 		return null;
 	}
 

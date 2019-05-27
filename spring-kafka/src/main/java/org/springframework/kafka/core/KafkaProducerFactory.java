@@ -24,8 +24,8 @@ import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.ProducerFencedException;
+import org.apache.kafka.common.serialization.Serializer;
 import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.BeanNameAware;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
@@ -38,11 +38,7 @@ import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
 import java.time.Duration;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Future;
@@ -78,19 +74,17 @@ import java.util.function.Consumer;
  * @author Artem Bilan
  * @author Chris Gilbert
  */
-public class KafkaProducerFactoryWithSerializerFactory<K, V> implements ProducerFactory<K, V>, ApplicationContextAware,
-		ApplicationListener<ContextStoppedEvent>, DisposableBean, BeanNameAware {
+public class KafkaProducerFactory<K, V> implements ProducerFactory<K, V>, ApplicationContextAware,
+		ApplicationListener<ContextStoppedEvent>, DisposableBean {
 
 	/**
 	 * The default close timeout duration as 30 seconds.
 	 */
 	public static final Duration DEFAULT_PHYSICAL_CLOSE_TIMEOUT = Duration.ofSeconds(30);
 
-	private static final LogAccessor LOGGER = new LogAccessor(LogFactory.getLog(KafkaProducerFactoryWithSerializerFactory.class));
+	private static final LogAccessor LOGGER = new LogAccessor(LogFactory.getLog(KafkaProducerFactory.class));
 
 	private final Map<String, Object> configs;
-
-	private String name;
 
 	private final AtomicInteger transactionIdSuffix = new AtomicInteger();
 
@@ -114,8 +108,18 @@ public class KafkaProducerFactoryWithSerializerFactory<K, V> implements Producer
 	 * Construct a factory with the provided configuration.
 	 * @param configs the configuration.
 	 */
-	public KafkaProducerFactoryWithSerializerFactory(Map<String, Object> configs) {
-		this(configs, null);
+	public KafkaProducerFactory(Map<String, Object> configs) {
+		this(configs, new KafkaSerializerFactory<K, V>() {
+			@Override
+			public Serializer<K> getKeySerializer() {
+				return null;
+			}
+
+			@Override
+			public Serializer<V> getValueSerializer() {
+				return null;
+			}
+		});
 	}
 
 	/**
@@ -126,8 +130,8 @@ public class KafkaProducerFactoryWithSerializerFactory<K, V> implements Producer
 	 * @param configs the configuration.
 	 * @param serializerFactory the key and value {@link KafkaSerializerFactory}.
 	 */
-	public KafkaProducerFactoryWithSerializerFactory(Map<String, Object> configs,
-			@Nullable KafkaSerializerFactory<K, V> serializerFactory) {
+	public KafkaProducerFactory(Map<String, Object> configs,
+								KafkaSerializerFactory<K, V> serializerFactory) {
 
 		this.configs = new HashMap<>(configs);
 		this.serializerFactory = serializerFactory;
@@ -144,19 +148,6 @@ public class KafkaProducerFactoryWithSerializerFactory<K, V> implements Producer
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
 		this.applicationContext = applicationContext;
-	}
-
-	@Override
-	public void setBeanName(String name) {
-		this.name = name;
-	}
-
-	public void setSerializerFactory(@Nullable KafkaSerializerFactory<K, V> serializerFactory) {
-		this.serializerFactory = serializerFactory;
-	}
-
-	public boolean hasSerializerFactory() {
-		return this.serializerFactory != null;
 	}
 
 	public KafkaSerializerFactory<K, V> getSerializerFactory() {
@@ -319,7 +310,7 @@ public class KafkaProducerFactoryWithSerializerFactory<K, V> implements Producer
 	 * @return the producer.
 	 */
 	protected Producer<K, V> createKafkaProducer() {
-		return new KafkaProducer<>(this.configs, this.serializerFactory.getKeySerializer(this.name), this.serializerFactory.getValueSerializer(this.name));
+		return new KafkaProducer<>(this.configs, this.serializerFactory.getKeySerializer(), this.serializerFactory.getValueSerializer());
 	}
 
 	Producer<K, V> createTransactionalProducerForPartition() {
@@ -375,7 +366,7 @@ public class KafkaProducerFactoryWithSerializerFactory<K, V> implements Producer
 		Producer<K, V> newProducer;
 		Map<String, Object> newProducerConfigs = new HashMap<>(this.configs);
 		newProducerConfigs.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG, this.transactionIdPrefix + suffix);
-		newProducer = new KafkaProducer<>(newProducerConfigs, this.serializerFactory.getKeySerializer(this.name), this.serializerFactory.getValueSerializer(this.name));
+		newProducer = new KafkaProducer<>(newProducerConfigs, this.serializerFactory.getKeySerializer(), this.serializerFactory.getValueSerializer());
 		newProducer.initTransactions();
 		return new CloseSafeProducer<>(newProducer, this.cache, remover,
 				(String) newProducerConfigs.get(ProducerConfig.TRANSACTIONAL_ID_CONFIG));

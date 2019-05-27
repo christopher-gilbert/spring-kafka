@@ -26,27 +26,27 @@ import java.util.Map;
  * are specified in application properties then new instances of those classes are created for each producer.
  * In most cases these options are all you will need, unless ALL the following apply:
  * <ul>
- *     <li>
- *         There is more than one producer factory in the JVM using the same serializers.
- *     </li>
- *     <li>
- *          The serializers either do not have a no argument constructor, or they require some initialization which
- *          means they cannot be specified in application properties.
- *      </li>
- *      <li>
- *          The serializers perform some action in their close method that renders them unusable subsequently
- *      </li>
+ * <li>
+ * There is more than one producer factory in the JVM using the same serializers.
+ * </li>
+ * <li>
+ * The serializers either do not have a no argument constructor, or they require some initialization which
+ * means they cannot be specified in application properties.
+ * </li>
+ * <li>
+ * The serializers perform some action in their close method that renders them unusable subsequently
+ * </li>
  * </ul>
- * In this case, you should use {@link KafkaProducerFactoryWithSerializerFactory} and either provide your own
- * factory implementation, or alternatively a {@link BeanLookupKafkaSerializerFactory} is implicitly created and
- * populated with any serializers annotated as {@link org.springframework.kafka.annotation.KafkaKeySerializer} or
- * {@link org.springframework.kafka.annotation.KafkaValueSerializer}
+ * In this case, you should use {@link KafkaProducerFactory} and either provide your own
+ * factory implementation, or alternatively use a {@link SuppliedSerializerKafkaProducerFactory}, giving it
+ * a supplier function that is used to get {@link Serializer}s for each {@link org.apache.kafka.clients.producer.Producer}
+ * instance.
  *
  * @param <K> the key type in produced {@link org.apache.kafka.clients.producer.ProducerRecord}s
  * @param <V> the value type in consumed {@link org.apache.kafka.clients.producer.ProducerRecord}s
  * @author Chris Gilbert
  */
-public class DefaultKafkaProducerFactory<K, V> extends KafkaProducerFactoryWithSerializerFactory<K, V> {
+public class DefaultKafkaProducerFactory<K, V> extends KafkaProducerFactory<K, V> {
 
 	/**
 	 * Construct a factory with the provided configuration.
@@ -59,7 +59,8 @@ public class DefaultKafkaProducerFactory<K, V> extends KafkaProducerFactoryWithS
 
 	/**
 	 * Construct a factory with the provided configuration and {@link Serializer}s.
-	 * 	 *
+	 * *
+	 *
 	 * @param configs         the configuration.
 	 * @param keySerializer   the key {@link Serializer}.
 	 * @param valueSerializer the value {@link Serializer}.
@@ -72,17 +73,11 @@ public class DefaultKafkaProducerFactory<K, V> extends KafkaProducerFactoryWithS
 
 
 	public void setKeySerializer(@Nullable Serializer<K> keySerializer) {
-		if (super.getSerializerFactory() instanceof SingleInstanceKafkaSerializerFactory) {
-			((SingleInstanceKafkaSerializerFactory<K, V>) super.getSerializerFactory()).setKeySerializer(keySerializer);
-		}
-		//TODO else warn?
+		((SingleInstanceKafkaSerializerFactory<K, V>) getSerializerFactory()).setKeySerializer(keySerializer);
 	}
 
 	public void setValueSerializer(@Nullable Serializer<V> valueSerializer) {
-		if (super.getSerializerFactory() instanceof SingleInstanceKafkaSerializerFactory) {
-			((SingleInstanceKafkaSerializerFactory<K, V>) super.getSerializerFactory()).setValueSerializer(valueSerializer);
-		}
-		//TODO else warn?
+		((SingleInstanceKafkaSerializerFactory<K, V>) super.getSerializerFactory()).setValueSerializer(valueSerializer);
 	}
 
 
@@ -104,16 +99,16 @@ public class DefaultKafkaProducerFactory<K, V> extends KafkaProducerFactoryWithS
 		}
 
 		@Override
-		public Serializer<K> getKeySerializer() {
-			return keySerializer;
+		public @Nullable Serializer<K> getKeySerializer() {
+			return this.keySerializer;
 		}
 
 		@Override
-		public Serializer<V> getValueSerializer() {
-			return valueSerializer;
+		public @Nullable Serializer<V> getValueSerializer() {
+			return this.valueSerializer;
 		}
 
-		void setKeySerializer(@Nullable  Serializer<K> keySerializer) {
+		void setKeySerializer(@Nullable Serializer<K> keySerializer) {
 			this.keySerializer = keySerializer;
 		}
 

@@ -32,7 +32,7 @@ import java.util.Properties;
  * <p>
  * Note that the same {@link Deserializer} instances are shared by all the created {@link KafkaConsumer}s. If you are
  * using Deserializers that cannot be reused once closed then you should use a
- * {@link KafkaConsumerFactoryWithDeserializerFactory} with a DeserializerFactory that provides new instances
+ * {@link KafkaConsumerFactory} with a DeserializerFactory that provides new instances
  * on retrieval.
  *
  * @param <K> the key type.
@@ -40,11 +40,11 @@ import java.util.Properties;
  * @author Gary Russell
  * @author Murali Reddy
  * @author Artem Bilan
- * @author Chris Gilbert (moved original implementation to {@link KafkaConsumerFactoryWithDeserializerFactory})
+ * @author Chris Gilbert (moved original implementation to {@link KafkaConsumerFactory})
  */
 public class DefaultKafkaConsumerFactory<K, V> implements ConsumerFactory<K, V> {
 
-	private final KafkaConsumerFactoryWithDeserializerFactory<K, V> delegate;
+	private final KafkaConsumerFactory<K, V> delegate;
 
 	private final SingleInstanceKafkaDeserializerFactory deserializerFactory;
 
@@ -68,7 +68,7 @@ public class DefaultKafkaConsumerFactory<K, V> implements ConsumerFactory<K, V> 
 									   @Nullable Deserializer<K> keyDeserializer,
 									   @Nullable Deserializer<V> valueDeserializer) {
 		this.deserializerFactory = new SingleInstanceKafkaDeserializerFactory(keyDeserializer, valueDeserializer);
-		this.delegate = new KafkaConsumerFactoryWithDeserializerFactory<>(configs, this.deserializerFactory);
+		this.delegate = new KafkaConsumerFactory<>(configs, this.deserializerFactory);
 	}
 
 	public void setKeyDeserializer(@Nullable Deserializer<K> keyDeserializer) {
@@ -157,12 +157,12 @@ public class DefaultKafkaConsumerFactory<K, V> implements ConsumerFactory<K, V> 
 
 		@Override
 		public Deserializer<K> getKeyDeserializer() {
-			return keyDeserializer;
+			return this.keyDeserializer;
 		}
 
 		@Override
 		public Deserializer<V> getValueDeserializer() {
-			return valueDeserializer;
+			return this.valueDeserializer;
 		}
 
 		void setKeyDeserializer(@Nullable Deserializer<K> keyDeserializer) {

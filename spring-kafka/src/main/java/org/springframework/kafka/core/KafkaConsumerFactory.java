@@ -19,7 +19,6 @@ import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.Deserializer;
-import org.springframework.beans.factory.BeanNameAware;
 import org.springframework.lang.Nullable;
 import org.springframework.util.StringUtils;
 
@@ -31,32 +30,40 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * KafkaConsumerFactory that makes use of a {@link KafkaDeserializerFactory} to construct key and value
+ * KafkaConsumerFactory that makes use of an optional {@link KafkaDeserializerFactory} to construct key and value
  * deserializers for each Consumer that is constructed.
  * <p>
- * Users may provide their own implementation of {@link KafkaDeserializerFactory}, or alternatively an
- * {@link BeanLookupKafkaDeserializerFactory} is implicitly created and populated with any
- * Deserializers annotated as {@link org.springframework.kafka.annotation.KafkaKeyDeserializer} or
- * {@link org.springframework.kafka.annotation.KafkaValueDeserializer}
+ * If a {@link KafkaDeserializerFactory} is not provided, or if the provided factory returns null for one or
+ * both of the key and value {@link Deserializer}s, then you must specify {@link Deserializer} classes as appropriate in
+ * spring.kafka.consumer configuration, and they must have no-argument constructors.
+ *
+ * {@link DefaultKafkaConsumerFactory} and {@link SuppliedDeserializerKafkaConsumerFactory} are alternative
+ * consumer factories with their own {@link KafkaDeserializerFactory}s - the former uses the same
+ * {@link Deserializer} instances for all {@link Consumer}s, the latter uses a {@link java.util.function.Supplier}
+ * function to get {@link Deserializer}s for each {@link Consumer}. When choosing one of these, be aware that
+ * closing a {@link Consumer} also closes its {@link Deserializer}s and so use a {@link SuppliedDeserializerKafkaConsumerFactory}
+ * if closing a {@link Deserializer} renders it unusable.
+ *
+ * For other requirements, users may provide their own implementation of {@link KafkaDeserializerFactory}, and pass it
+ * to this class.
+ *
  *
  * @param <K> the key type in consumed {@link org.apache.kafka.clients.consumer.ConsumerRecord}s
  * @param <V> the value type in consumed {@link org.apache.kafka.clients.consumer.ConsumerRecord}s
  * @author Chris Gilbert (based on original {@link DefaultKafkaConsumerFactory}
  */
-public class KafkaConsumerFactoryWithDeserializerFactory<K, V> implements ConsumerFactory<K, V>, BeanNameAware {
+public class KafkaConsumerFactory<K, V> implements ConsumerFactory<K, V> {
 
 	private final Map<String, Object> configs;
 
 	private KafkaDeserializerFactory<K, V> deserializerFactory;
-
-	private String name;
 
 	/**
 	 * Construct a factory with the provided configuration.
 	 *
 	 * @param configs the configuration.
 	 */
-	public KafkaConsumerFactoryWithDeserializerFactory(Map<String, Object> configs) {
+	public KafkaConsumerFactory(Map<String, Object> configs) {
 		this(configs, null);
 	}
 
@@ -66,7 +73,7 @@ public class KafkaConsumerFactoryWithDeserializerFactory<K, V> implements Consum
 	 * @param configs             the configuration.
 	 * @param deserializerFactory the factory for providing key and value deserializer instances
 	 */
-	public KafkaConsumerFactoryWithDeserializerFactory(Map<String, Object> configs, @Nullable KafkaDeserializerFactory<K, V> deserializerFactory) {
+	public KafkaConsumerFactory(Map<String, Object> configs, @Nullable KafkaDeserializerFactory<K, V> deserializerFactory) {
 		this.configs = new HashMap<>(configs);
 		this.deserializerFactory = deserializerFactory;
 	}
@@ -90,12 +97,12 @@ public class KafkaConsumerFactoryWithDeserializerFactory<K, V> implements Consum
 
 	@Override
 	public Deserializer<K> getKeyDeserializer() {
-		return hasDeserializerFactory() ? this.deserializerFactory.getKeyDeserializer(this.name) : null;
+		return hasDeserializerFactory() ? this.deserializerFactory.getKeyDeserializer() : null;
 	}
 
 	@Override
 	public Deserializer<V> getValueDeserializer() {
-		return hasDeserializerFactory() ? this.deserializerFactory.getValueDeserializer(this.name) : null;
+		return hasDeserializerFactory() ? this.deserializerFactory.getValueDeserializer() : null;
 	}
 
 	@Override
@@ -117,11 +124,6 @@ public class KafkaConsumerFactoryWithDeserializerFactory<K, V> implements Consum
 		Object auto = this.configs.get(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG);
 		return auto instanceof Boolean ? (Boolean) auto
 				: auto instanceof String ? Boolean.valueOf((String) auto) : true;
-	}
-
-	@Override
-	public void setBeanName(String name) {
-		this.name = name;
 	}
 
 
