@@ -25,15 +25,15 @@ import java.util.Map;
 import java.util.Properties;
 
 /**
- * The {@link ConsumerFactory} implementation to produce a new {@link Consumer} instance
+ * The {@link ConsumerFactory} implementation to produce new {@link Consumer} instances
  * for provided {@link Map} {@code configs} and optional {@link Deserializer} {@code keyDeserializer},
  * {@code valueDeserializer} implementations on each {@link #createConsumer()}
  * invocation.
  * <p>
  * Note that the same {@link Deserializer} instances are shared by all the created {@link KafkaConsumer}s. If you are
  * using Deserializers that cannot be reused once closed then you should use a
- * {@link KafkaConsumerFactory} with a DeserializerFactory that provides new instances
- * on retrieval.
+ * {@link KafkaConsumerFactory} with a {@link KafkaDeserializerFactory} that provides new instances
+ * on retrieval or use {@link SuppliedDeserializerKafkaConsumerFactory}.
  *
  * @param <K> the key type.
  * @param <V> the value type.
@@ -71,10 +71,12 @@ public class DefaultKafkaConsumerFactory<K, V> implements ConsumerFactory<K, V> 
 		this.delegate = new KafkaConsumerFactory<>(configs, this.deserializerFactory);
 	}
 
+	// retained for backward compatibility
 	public void setKeyDeserializer(@Nullable Deserializer<K> keyDeserializer) {
 		this.deserializerFactory.setKeyDeserializer(keyDeserializer);
 	}
 
+	// retained for backward compatibility
 	public void setValueDeserializer(@Nullable Deserializer<V> valueDeserializer) {
 		this.deserializerFactory.setValueDeserializer(valueDeserializer);
 	}
@@ -134,6 +136,7 @@ public class DefaultKafkaConsumerFactory<K, V> implements ConsumerFactory<K, V> 
 	}
 
 
+	// retained for backward compatibility
 	protected KafkaConsumer<K, V> createKafkaConsumer(Map<String, Object> configs) {
 		return (KafkaConsumer<K, V>) new DefaultKafkaConsumerFactory<K, V>(configs).createConsumer();
 	}

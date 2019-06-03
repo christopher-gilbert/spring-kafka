@@ -30,26 +30,28 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * KafkaConsumerFactory that makes use of an optional {@link KafkaDeserializerFactory} to construct key and value
- * deserializers for each Consumer that is constructed.
+ * KafkaConsumerFactory that makes use of an optional {@link KafkaDeserializerFactory} to get key and value
+ * {@link Deserializer}s for each {@link Consumer} that is constructed.
  * <p>
  * If a {@link KafkaDeserializerFactory} is not provided, or if the provided factory returns null for one or
  * both of the key and value {@link Deserializer}s, then you must specify {@link Deserializer} classes as appropriate in
  * spring.kafka.consumer configuration, and they must have no-argument constructors.
- *
+ * <p>
  * {@link DefaultKafkaConsumerFactory} and {@link SuppliedDeserializerKafkaConsumerFactory} are alternative
  * consumer factories with their own {@link KafkaDeserializerFactory}s - the former uses the same
  * {@link Deserializer} instances for all {@link Consumer}s, the latter uses a {@link java.util.function.Supplier}
  * function to get {@link Deserializer}s for each {@link Consumer}. When choosing one of these, be aware that
  * closing a {@link Consumer} also closes its {@link Deserializer}s and so use a {@link SuppliedDeserializerKafkaConsumerFactory}
  * if closing a {@link Deserializer} renders it unusable.
- *
+ * <p>
  * For other requirements, users may provide their own implementation of {@link KafkaDeserializerFactory}, and pass it
  * to this class.
  *
- *
  * @param <K> the key type in consumed {@link org.apache.kafka.clients.consumer.ConsumerRecord}s
  * @param <V> the value type in consumed {@link org.apache.kafka.clients.consumer.ConsumerRecord}s
+ * @author Gary Russell (see {@link DefaultKafkaConsumerFactory})
+ * @author Murali Reddy (see {@link DefaultKafkaConsumerFactory})
+ * @author Artem Bilan (see {@link DefaultKafkaConsumerFactory})
  * @author Chris Gilbert (based on original {@link DefaultKafkaConsumerFactory}
  */
 public class KafkaConsumerFactory<K, V> implements ConsumerFactory<K, V> {
@@ -78,16 +80,8 @@ public class KafkaConsumerFactory<K, V> implements ConsumerFactory<K, V> {
 		this.deserializerFactory = deserializerFactory;
 	}
 
-	public void setDeserializerFactory(KafkaDeserializerFactory<K, V> deserializerFactory) {
-		this.deserializerFactory = deserializerFactory;
-	}
-
 	public boolean hasDeserializerFactory() {
 		return this.deserializerFactory != null;
-	}
-
-	public KafkaDeserializerFactory<K, V> getDeserializerFactory() {
-		return this.deserializerFactory;
 	}
 
 	@Override

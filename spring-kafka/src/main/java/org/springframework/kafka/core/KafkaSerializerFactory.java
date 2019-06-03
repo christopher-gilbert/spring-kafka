@@ -20,6 +20,10 @@ import org.apache.kafka.common.serialization.Serializer;
 /**
  * The strategy to produce {@link Serializer} instances for {@link org.apache.kafka.clients.producer.Producer}s
  * that are created by {@link ProducerFactory}s.
+ * <p>
+ * Any implementation may leave default implementations for one (or both!) methods, but then the user of the
+ * {@link ProducerFactory} must specify {@link Serializer} classes as appropriate in
+ * spring.kafka.producer configuration, and they must have no-argument constructors.
  *
  * @param <K> the key type.
  * @param <V> the value type.

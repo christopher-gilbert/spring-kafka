@@ -27,16 +27,16 @@ import java.util.function.Supplier;
  * If none is provided but {@link Serializer} classes are specified in application properties then new instances of
  * those classes are created for each producer. That approach is simpler if you require separate instances per
  * {@link org.apache.kafka.clients.producer.Producer} AND your {@link Serializer}s have no-arg constructors. You can
- * use configuration for either of the {@link Serializer}s by simply providing a Supplier that returns null.
- *
+ * defer to configuration for either of the {@link Serializer}s by simply providing null instead of a Supplier.
+ * <p>
  * If you cannot use configuration to specify {@link Serializer}s and do not absolutely require separate instances
  * for each {@link org.apache.kafka.clients.producer.Producer} you can use the {@link DefaultKafkaProducerFactory},
  * which uses shared {@link Serializer} instances for each {@link org.apache.kafka.clients.producer.Producer}.
- *
+ * <p>
  * In most cases, this is safe, as {@link org.apache.kafka.clients.producer.Producer}s are pooled and generally not
- * closed, but if you have more than one {@link ProducerFactory} in your application context, using the same {@link Serializer}s
- * there is a risk that the {@link Serializer}s may get closed by one {@link ProducerFactory} rendering them
- * unusable by the other.
+ * closed, but if you have more than one {@link ProducerFactory} in your application context, using the same
+ * {@link Serializer}s there is a risk that the {@link Serializer}s may get closed by one {@link ProducerFactory}
+ * rendering them unusable by the other.
  *
  * @param <K> the key type in produced {@link org.apache.kafka.clients.producer.ProducerRecord}s
  * @param <V> the value type in consumed {@link org.apache.kafka.clients.producer.ProducerRecord}s
@@ -57,7 +57,7 @@ public class SuppliedSerializerKafkaProducerFactory<K, V> extends KafkaProducerF
 	 * Construct a factory with the provided configuration and {@link Serializer}s.
 	 * *
 	 *
-	 * @param configs         the configuration.
+	 * @param configs                 the configuration.
 	 * @param keySerializerSupplier   the key {@link Serializer} supplier function.
 	 * @param valueSerializerSupplier the value {@link Serializer} supplier function.
 	 */
@@ -70,7 +70,7 @@ public class SuppliedSerializerKafkaProducerFactory<K, V> extends KafkaProducerF
 
 	/**
 	 * Simple implementation of {@link KafkaSerializerFactory} that provides a {@link Serializer} instance from
-	 * its supplier, if not null (for null Suppliers, it is essential to configure a deserializer class).
+	 * its supplier.
 	 */
 	private static class SupplierKafkaSerializerFactory<K, V> implements KafkaSerializerFactory<K, V> {
 

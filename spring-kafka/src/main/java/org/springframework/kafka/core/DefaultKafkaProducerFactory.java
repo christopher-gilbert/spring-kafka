@@ -22,12 +22,13 @@ import java.util.Map;
 
 /**
  * {@link ProducerFactory} that makes use of a {@link KafkaSerializerFactory} which always provides the same instance of
- * key and value serializer for each producer it creates, if provided. If none is provided but serializer classes
+ * key and value serializer for each producer it creates, if provided. If none is provided but {@link Serializer} classes
  * are specified in application properties then new instances of those classes are created for each producer.
  * In most cases these options are all you will need, unless ALL the following apply:
  * <ul>
  * <li>
- * There is more than one producer factory in the JVM using the same serializers.
+ * There is more than one producer factory in the {@link org.springframework.context.ApplicationContext} using the same
+ * {@link Serializer}s.
  * </li>
  * <li>
  * The serializers either do not have a no argument constructor, or they require some initialization which
@@ -71,11 +72,12 @@ public class DefaultKafkaProducerFactory<K, V> extends KafkaProducerFactory<K, V
 		super(configs, new SingleInstanceKafkaSerializerFactory<>(keySerializer, valueSerializer));
 	}
 
-
+	// retained for backward compatibility
 	public void setKeySerializer(@Nullable Serializer<K> keySerializer) {
 		((SingleInstanceKafkaSerializerFactory<K, V>) getSerializerFactory()).setKeySerializer(keySerializer);
 	}
 
+	// retained for backward compatibility
 	public void setValueSerializer(@Nullable Serializer<V> valueSerializer) {
 		((SingleInstanceKafkaSerializerFactory<K, V>) super.getSerializerFactory()).setValueSerializer(valueSerializer);
 	}
@@ -99,12 +101,14 @@ public class DefaultKafkaProducerFactory<K, V> extends KafkaProducerFactory<K, V
 		}
 
 		@Override
-		public @Nullable Serializer<K> getKeySerializer() {
+		public @Nullable
+		Serializer<K> getKeySerializer() {
 			return this.keySerializer;
 		}
 
 		@Override
-		public @Nullable Serializer<V> getValueSerializer() {
+		public @Nullable
+		Serializer<V> getValueSerializer() {
 			return this.valueSerializer;
 		}
 

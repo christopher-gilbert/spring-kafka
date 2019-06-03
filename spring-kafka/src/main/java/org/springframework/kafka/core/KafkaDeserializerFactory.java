@@ -22,6 +22,10 @@ import org.springframework.lang.Nullable;
 /**
  * The strategy to produce {@link org.apache.kafka.common.serialization.Deserializer} instances for {@link Consumer}s
  * that are created by {@link ConsumerFactory}s.
+ * <p>
+ * Any implementation may leave default implementations for one (or both!) methods, but then the user of the
+ * {@link ConsumerFactory} must specify {@link Deserializer} classes as appropriate in
+ * spring.kafka.consumer configuration, and they must have no-argument constructors.
  *
  * @param <K> the key type.
  * @param <V> the value type.
@@ -34,7 +38,8 @@ public interface KafkaDeserializerFactory<K, V> {
 	 *
 	 * @return the Deserializer (null in the default implementation)
 	 */
-	default @Nullable Deserializer<K> getKeyDeserializer() {
+	default @Nullable
+	Deserializer<K> getKeyDeserializer() {
 		return null;
 	}
 
@@ -43,7 +48,8 @@ public interface KafkaDeserializerFactory<K, V> {
 	 *
 	 * @return the Deserializer (null in the default implementation)
 	 */
-	default @Nullable Deserializer<V> getValueDeserializer() {
+	default @Nullable
+	Deserializer<V> getValueDeserializer() {
 		return null;
 	}
 

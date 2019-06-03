@@ -67,7 +67,6 @@ import java.util.function.Consumer;
  *
  * @param <K> the key type.
  * @param <V> the value type.
- *
  * @author Gary Russell
  * @author Murali Reddy
  * @author Nakul Mishra
@@ -106,6 +105,7 @@ public class KafkaProducerFactory<K, V> implements ProducerFactory<K, V>, Applic
 
 	/**
 	 * Construct a factory with the provided configuration.
+	 *
 	 * @param configs the configuration.
 	 */
 	public KafkaProducerFactory(Map<String, Object> configs) {
@@ -127,7 +127,8 @@ public class KafkaProducerFactory<K, V> implements ProducerFactory<K, V>, Applic
 	 * Also configures a {@link #transactionIdPrefix} as a value from the
 	 * {@link ProducerConfig#TRANSACTIONAL_ID_CONFIG} if provided.
 	 * This config is going to be overridden with a suffix for target {@link Producer} instance.
-	 * @param configs the configuration.
+	 *
+	 * @param configs           the configuration.
 	 * @param serializerFactory the key and value {@link KafkaSerializerFactory}.
 	 */
 	public KafkaProducerFactory(Map<String, Object> configs,
@@ -157,6 +158,7 @@ public class KafkaProducerFactory<K, V> implements ProducerFactory<K, V>, Applic
 	/**
 	 * The time to wait when physically closing the producer (when {@link #reset()} or {@link #destroy()} is invoked).
 	 * Specified in seconds; default {@link #DEFAULT_PHYSICAL_CLOSE_TIMEOUT}.
+	 *
 	 * @param physicalCloseTimeout the timeout in seconds.
 	 * @since 1.0.7
 	 */
@@ -168,6 +170,7 @@ public class KafkaProducerFactory<K, V> implements ProducerFactory<K, V>, Applic
 	 * Set a prefix for the {@link ProducerConfig#TRANSACTIONAL_ID_CONFIG} config.
 	 * By default a {@link ProducerConfig#TRANSACTIONAL_ID_CONFIG} value from configs is used as a prefix
 	 * in the target producer configs.
+	 *
 	 * @param transactionIdPrefix the prefix.
 	 * @since 1.3
 	 */
@@ -196,6 +199,7 @@ public class KafkaProducerFactory<K, V> implements ProducerFactory<K, V>, Applic
 	 * Set to false to revert to the previous behavior of a simple incrementing
 	 * transactional.id suffix for each producer instead of maintaining a producer
 	 * for each group/topic/partition.
+	 *
 	 * @param producerPerConsumerPartition false to revert.
 	 * @since 1.3.7
 	 */
@@ -205,6 +209,7 @@ public class KafkaProducerFactory<K, V> implements ProducerFactory<K, V>, Applic
 
 	/**
 	 * Return the producerPerConsumerPartition.
+	 *
 	 * @return the producerPerConsumerPartition.
 	 * @since 1.3.8
 	 */
@@ -216,6 +221,7 @@ public class KafkaProducerFactory<K, V> implements ProducerFactory<K, V>, Applic
 	/**
 	 * Return an unmodifiable reference to the configuration map for this factory.
 	 * Useful for cloning to make a similar factory.
+	 *
 	 * @return the configs.
 	 * @since 1.3
 	 */
@@ -240,8 +246,7 @@ public class KafkaProducerFactory<K, V> implements ProducerFactory<K, V>, Applic
 		while (producerToClose != null) {
 			try {
 				producerToClose.delegate.close(this.physicalCloseTimeout);
-			}
-			catch (Exception e) {
+			} catch (Exception e) {
 				LOGGER.error(e, "Exception while closing producer");
 			}
 			producerToClose = this.cache.poll();
@@ -263,19 +268,20 @@ public class KafkaProducerFactory<K, V> implements ProducerFactory<K, V>, Applic
 	/**
 	 * Close the {@link Producer}(s) and clear the cache of transactional
 	 * {@link Producer}(s).
+	 *
 	 * @since 2.2
 	 */
 	public void reset() {
 		try {
 			destroy();
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			LOGGER.error(e, "Exception while closing producer");
 		}
 	}
 
 	/**
 	 * NoOp.
+	 *
 	 * @return always true.
 	 * @deprecated {@link org.springframework.context.Lifecycle} is no longer implemented.
 	 */
@@ -289,8 +295,7 @@ public class KafkaProducerFactory<K, V> implements ProducerFactory<K, V>, Applic
 		if (this.transactionIdPrefix != null) {
 			if (this.producerPerConsumerPartition) {
 				return createTransactionalProducerForPartition();
-			}
-			else {
+			} else {
 				return createTransactionalProducer();
 			}
 		}
@@ -307,6 +312,7 @@ public class KafkaProducerFactory<K, V> implements ProducerFactory<K, V>, Applic
 	/**
 	 * Subclasses must return a raw producer which will be wrapped in a
 	 * {@link CloseSafeProducer}.
+	 *
 	 * @return the producer.
 	 */
 	protected Producer<K, V> createKafkaProducer() {
@@ -317,15 +323,13 @@ public class KafkaProducerFactory<K, V> implements ProducerFactory<K, V>, Applic
 		String suffix = TransactionSupport.getTransactionIdSuffix();
 		if (suffix == null) {
 			return createTransactionalProducer();
-		}
-		else {
+		} else {
 			synchronized (this.consumerProducers) {
 				if (!this.consumerProducers.containsKey(suffix)) {
 					CloseSafeProducer<K, V> newProducer = doCreateTxProducer(suffix, this::removeConsumerProducer);
 					this.consumerProducers.put(suffix, newProducer);
 					return newProducer;
-				}
-				else {
+				} else {
 					return this.consumerProducers.get(suffix);
 				}
 			}
@@ -347,6 +351,7 @@ public class KafkaProducerFactory<K, V> implements ProducerFactory<K, V>, Applic
 	/**
 	 * Subclasses must return a producer from the {@link #getCache()} or a
 	 * new raw producer wrapped in a {@link CloseSafeProducer}.
+	 *
 	 * @return the producer - cannot be null.
 	 * @since 1.3
 	 */
@@ -354,14 +359,13 @@ public class KafkaProducerFactory<K, V> implements ProducerFactory<K, V>, Applic
 		Producer<K, V> cachedProducer = this.cache.poll();
 		if (cachedProducer == null) {
 			return doCreateTxProducer("" + this.transactionIdSuffix.getAndIncrement(), null);
-		}
-		else {
+		} else {
 			return cachedProducer;
 		}
 	}
 
 	private CloseSafeProducer<K, V> doCreateTxProducer(String suffix,
-			@Nullable Consumer<CloseSafeProducer<K, V>> remover) {
+													   @Nullable Consumer<CloseSafeProducer<K, V>> remover) {
 
 		Producer<K, V> newProducer;
 		Map<String, Object> newProducerConfigs = new HashMap<>(this.configs);
@@ -389,13 +393,11 @@ public class KafkaProducerFactory<K, V> implements ProducerFactory<K, V>, Applic
 	}
 
 
-
 	/**
 	 * A wrapper class for the delegate.
 	 *
 	 * @param <K> the key type.
 	 * @param <V> the value type.
-	 *
 	 */
 	protected static class CloseSafeProducer<K, V> implements Producer<K, V> {
 
@@ -419,13 +421,13 @@ public class KafkaProducerFactory<K, V> implements ProducerFactory<K, V>, Applic
 		}
 
 		CloseSafeProducer(Producer<K, V> delegate, @Nullable BlockingQueue<CloseSafeProducer<K, V>> cache,
-				@Nullable Consumer<CloseSafeProducer<K, V>> removeConsumerProducer) {
+						  @Nullable Consumer<CloseSafeProducer<K, V>> removeConsumerProducer) {
 
 			this(delegate, cache, removeConsumerProducer, null);
 		}
 
 		CloseSafeProducer(Producer<K, V> delegate, @Nullable BlockingQueue<CloseSafeProducer<K, V>> cache,
-				@Nullable Consumer<CloseSafeProducer<K, V>> removeConsumerProducer, @Nullable String txId) {
+						  @Nullable Consumer<CloseSafeProducer<K, V>> removeConsumerProducer, @Nullable String txId) {
 
 			this.delegate = delegate;
 			this.cache = cache;
@@ -471,8 +473,7 @@ public class KafkaProducerFactory<K, V> implements ProducerFactory<K, V>, Applic
 			LOGGER.debug(() -> toString() + " beginTransaction()");
 			try {
 				this.delegate.beginTransaction();
-			}
-			catch (RuntimeException e) {
+			} catch (RuntimeException e) {
 				LOGGER.error(e, () -> "beginTransaction failed: " + this);
 				this.txFailed = true;
 				throw e;
@@ -492,8 +493,7 @@ public class KafkaProducerFactory<K, V> implements ProducerFactory<K, V>, Applic
 			LOGGER.debug(() -> toString() + " commitTransaction()");
 			try {
 				this.delegate.commitTransaction();
-			}
-			catch (RuntimeException e) {
+			} catch (RuntimeException e) {
 				LOGGER.error(e, () -> "commitTransaction failed: " + this);
 				this.txFailed = true;
 				throw e;
@@ -505,8 +505,7 @@ public class KafkaProducerFactory<K, V> implements ProducerFactory<K, V>, Applic
 			LOGGER.debug(() -> toString() + " abortTransaction()");
 			try {
 				this.delegate.abortTransaction();
-			}
-			catch (RuntimeException e) {
+			} catch (RuntimeException e) {
 				LOGGER.error(e, () -> "Abort failed: " + this);
 				this.txFailed = true;
 				throw e;
@@ -535,23 +534,20 @@ public class KafkaProducerFactory<K, V> implements ProducerFactory<K, V>, Applic
 							+ "broker restarted during transaction: " + this);
 					if (timeout == null) {
 						this.delegate.close();
-					}
-					else {
+					} else {
 						this.delegate.close(timeout);
 					}
 					if (this.removeConsumerProducer != null) {
 						this.removeConsumerProducer.accept(this);
 					}
-				}
-				else {
+				} else {
 					if (this.removeConsumerProducer == null) { // dedicated consumer producers are not cached
 						synchronized (this) {
 							if (!this.cache.contains(this)
 									&& !this.cache.offer(this)) {
 								if (timeout == null) {
 									this.delegate.close();
-								}
-								else {
+								} else {
 									this.delegate.close(timeout);
 								}
 							}

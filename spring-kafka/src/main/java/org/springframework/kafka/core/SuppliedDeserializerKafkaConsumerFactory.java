@@ -25,26 +25,25 @@ import java.util.Properties;
 import java.util.function.Supplier;
 
 /**
- * A {@link ConsumerFactory} implementation to produce a new {@link Consumer} instance
+ * A {@link ConsumerFactory} implementation to produce new {@link Consumer} instances
  * using provided {@link Map} {@code configs} and optional {@link Deserializer} instances obtained from
  * {@code keyDeserializerSupplier} and {@code valueDeserializerSupplier} functions on each {@link #createConsumer()}
  * invocation.
  * <p>
- * Note that if either of the Suppliers is null, then it is essential to configure a Deserializer class in
- * spring.kafka.consumer configuration.
+ * Note that if either of the Suppliers is null (or returns null when called), then it is essential to configure a
+ * Deserializer class in spring.kafka.consumer configuration.
+ * <p>
+ * Use of a Supplier allows each consumer to have separate instances of {@link Deserializer}s, which means that the
+ * {@link Consumer}s can be safely closed (close cascades down to the Deserializers). If your Deserializers can be
+ * created with a no argument constructor, then simpler to use configuration instead, which also results in separate
+ * instances per {@link Consumer}.
+ * <p>
+ * If you are happy for all consumers to share the same Deserializer instances (ie if they have a no-op close
+ * implementation), then you can use {@link DefaultKafkaConsumerFactory}. If you have more complex requirements,
+ * then simply implement {@link KafkaDeserializerFactory} and pass it to a {@link KafkaConsumerFactory}.
  *
- * Use of a Supplier allows each consumer to have separate instances of {@link Deserializer}s, which means that the consumers
- * can be safely closed (close cascades down to the Deserializers). If your Deserializers can be created with a no
- * argument constructor, then simpler to use configuration instead, which also results in separate instances per
- * consumer.
- *
- * If you are happy for all consumers to share the same Deserializer instances (ie if they have a no-op close implementation,
- * then use {@link DefaultKafkaConsumerFactory}. If you have more complex requirements, then simply implement {@link KafkaDeserializerFactory} and pass it to a
- * {@link KafkaConsumerFactory}.
- *
- *  @param <K> the key type in consumed {@link org.apache.kafka.clients.consumer.ConsumerRecord}s
- *  @param <V> the value type in consumed {@link org.apache.kafka.clients.consumer.ConsumerRecord}s
- *  *
+ * @param <K> the key type in consumed {@link org.apache.kafka.clients.consumer.ConsumerRecord}s
+ * @param <V> the value type in consumed {@link org.apache.kafka.clients.consumer.ConsumerRecord}s
  * @author Chris Gilbert
  */
 public class SuppliedDeserializerKafkaConsumerFactory<K, V> implements ConsumerFactory<K, V> {
@@ -54,10 +53,11 @@ public class SuppliedDeserializerKafkaConsumerFactory<K, V> implements ConsumerF
 	public SuppliedDeserializerKafkaConsumerFactory(Map<String, Object> configs) {
 		this(configs, null, null);
 	}
+
 	/**
 	 * Construct a factory with the provided configuration and deserializer suppliers.
 	 *
-	 * @param configs           the configuration.
+	 * @param configs                   the configuration.
 	 * @param keyDeserializerSupplier   the key {@link Deserializer} supplier function.
 	 * @param valueDeserializerSupplier the value {@link Deserializer} supplier function.
 	 */
@@ -107,11 +107,9 @@ public class SuppliedDeserializerKafkaConsumerFactory<K, V> implements ConsumerF
 	}
 
 
-
 	/**
 	 * Simple implementation of {@link KafkaDeserializerFactory} that provides a {@link Deserializer} instance from
-	 * its supplier, if not null (for null Suppliers, it is essential to configure a deserializer class)
-	 *
+	 * its supplier.
 	 */
 	private class SupplierKafkaDeserializerFactory implements KafkaDeserializerFactory<K, V> {
 
@@ -126,12 +124,14 @@ public class SuppliedDeserializerKafkaConsumerFactory<K, V> implements ConsumerF
 		}
 
 		@Override
-		public @Nullable  Deserializer<K> getKeyDeserializer() {
+		public @Nullable
+		Deserializer<K> getKeyDeserializer() {
 			return this.keyDeserializerSupplier.get();
 		}
 
 		@Override
-		public @Nullable Deserializer<V> getValueDeserializer() {
+		public @Nullable
+		Deserializer<V> getValueDeserializer() {
 			return this.valueDeserializerSupplier.get();
 		}
 

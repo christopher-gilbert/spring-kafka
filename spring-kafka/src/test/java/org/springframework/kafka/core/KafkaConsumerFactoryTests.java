@@ -16,7 +16,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class KafkaConsumerFactoryTests {
 
-
 	@Test
 	public void testNoOverrides() {
 		Map<String, Object> originalConfig = new HashMap<>();
@@ -113,6 +112,5 @@ public class KafkaConsumerFactoryTests {
 		assertThat(target.deriveConfigsForConsumerInstance("overridden", null, null, overrides).get(GROUP_ID_CONFIG)).isEqualTo("overridden");
 
 	}
-
 
 }
